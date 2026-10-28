@@ -23,6 +23,7 @@ def _sub_score_weights() -> dict[str, float]:
         "leadership": s.weight_leadership,
         "open_source_contributions": s.weight_open_source_contributions,
         "hackathon_performance": s.weight_hackathon_performance,
+        "verified_credentials": s.weight_verified_credentials,
     }
 
 

@@ -67,6 +67,36 @@ def test_problem_solving_winsorized_percentile_with_population():
     assert 0 <= result.value <= 100
 
 
+_LEETCODE = {"easy_solved": 13, "medium_solved": 16, "hard_solved": 0, "latest_rating": 1485.3}
+
+
+def test_problem_solving_scores_leetcode_without_assessment():
+    result = mechanical_scores.problem_solving(None, [], leetcode_stats=_LEETCODE)
+    assert result.value is not None
+    assert 0 < result.value < 50
+    assert "LeetCode 13E/16M/0H" in result.rationale
+
+
+def test_problem_solving_blends_assessment_and_leetcode():
+    population = [float(v) for v in range(1, 101)]
+    assessment_only = mechanical_scores.problem_solving(90.0, population)
+    blended = mechanical_scores.problem_solving(90.0, population, leetcode_stats=_LEETCODE)
+    assert blended.value is not None and assessment_only.value is not None
+    assert blended.value < assessment_only.value
+
+
+def test_leetcode_score_none_for_empty_stats():
+    assert mechanical_scores.leetcode_score(None) is None
+    assert mechanical_scores.leetcode_score({"easy_solved": 0, "medium_solved": 0}) is None
+
+
+def test_leetcode_score_rises_with_harder_problems():
+    easy_only = mechanical_scores.leetcode_score({"easy_solved": 60})
+    hard_only = mechanical_scores.leetcode_score({"hard_solved": 60})
+    assert easy_only is not None and hard_only is not None
+    assert hard_only[0] > easy_only[0]
+
+
 def test_community_participation_cold_start():
     result = mechanical_scores.community_participation(GithubAnalysis(), star_population=[])
     assert result.value is None

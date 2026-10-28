@@ -24,6 +24,7 @@ from services.agents.candidate_intelligence.tools.judgment_scores import (
 )
 from services.agents.candidate_intelligence.tools.open_source_score import open_source_contributions
 from services.agents.candidate_intelligence.tools.hackathon_score import hackathon_performance
+from services.agents.candidate_intelligence.tools.credentials_score import verified_credentials
 
 
 async def run(state: CandidateProfileState) -> dict:
@@ -60,6 +61,14 @@ async def run(state: CandidateProfileState) -> dict:
         project_quality_score = SubScore(value=None, rationale=no_github)
         innovation_score = SubScore(value=None, rationale=no_github)
 
+    # Certificates on file plus one extracted in this run (persisted by the router only
+    # after scoring, so it would otherwise miss its own rescore).
+    certifications = list(state.get("certifications") or [])
+    extracted = state.get("certificate_extracted")
+    if extracted:
+        certifications.append({**extracted, "verification_status": "unverified"})
+    profile_data = state.get("merged_profile") or state.get("resume_parsed") or {}
+
     raw_sub_scores = {
         "coding_ability": mechanical_scores.coding_ability(
             analysis,
@@ -90,6 +99,12 @@ async def run(state: CandidateProfileState) -> dict:
         "hackathon_performance": hackathon_performance(
             platform_results=state.get("hackathon_platform_results"),
             self_reported=state.get("hackathon_self_reported"),
+        ),
+        "verified_credentials": verified_credentials(
+            certifications,
+            experience=profile_data.get("experience") or [],
+            education=profile_data.get("education") or [],
+            skills=profile_data.get("skills") or [],
         ),
     }
 
@@ -211,6 +226,19 @@ async def run(state: CandidateProfileState) -> dict:
                         indicator=f"Active across {active_weeks} weeks in 52-week observation window",
                         provenance="https://github.com",
                         verification_status="verified",
+                    )
+                )
+        elif comp_id == "verified_credentials":
+            for cert in certifications:
+                ev_items.append(
+                    EvidenceItem(
+                        source=f"certificate:{cert.get('title') or 'untitled'}",
+                        artifact_type="certificate",
+                        indicator=f"Certificate: {cert.get('title') or 'untitled'}",
+                        provenance=cert.get("credential_id") or "uploaded certificate",
+                        verification_status=(
+                            "verified" if cert.get("verification_status") == "verified" else "self_reported"
+                        ),
                     )
                 )
         elif comp_id == "hackathon_performance":

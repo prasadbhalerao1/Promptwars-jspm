@@ -167,7 +167,7 @@ export function ProblemSolvingStats({
           </p>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6 pt-0">
+      <CardContent className="space-y-4 pt-0">
         <MetricGrid>
           <Metric label="Questions solved" value={leetcodeStats.total_solved} />
           <Metric label="Active days" value={leetcodeStats.total_active_days} />
@@ -182,32 +182,77 @@ export function ProblemSolvingStats({
           />
         </MetricGrid>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div className="p-4 rounded-xl bg-muted/40">
+        <div
+          className={`grid grid-cols-1 gap-4 ${ratingData.length > 1 ? "lg:grid-cols-2" : ""}`}
+        >
+          <div className="rounded-xl bg-muted/40 p-4">
             <p className="mb-2 text-meta font-medium text-muted-foreground">
               Question Distribution
             </p>
-            <div className="h-44 w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={difficultyData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={45}
-                    outerRadius={65}
-                    stroke="none"
-                  >
-                    {difficultyData.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={DIFFICULTY_COLORS[entry.name]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<DifficultyTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+              <div className="h-40 w-40 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={difficultyData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={45}
+                      outerRadius={65}
+                      stroke="none"
+                    >
+                      {difficultyData.map((entry) => (
+                        <Cell
+                          key={entry.name}
+                          fill={DIFFICULTY_COLORS[entry.name]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<DifficultyTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              {/* The donut alone hides the actual counts; the breakdown states them. */}
+              <ul className="w-full flex-1 space-y-3">
+                {difficultyData.map((entry) => {
+                  const total = leetcodeStats.total_solved || 1;
+                  return (
+                    <li key={entry.name} className="space-y-1">
+                      <div className="flex items-baseline justify-between text-sm">
+                        <span className="font-medium text-foreground">
+                          {entry.name}
+                        </span>
+                        <span className="font-mono text-muted-foreground">
+                          {entry.value}
+                          <span className="text-xs">
+                            {" "}
+                            / {leetcodeStats.total_solved}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, (entry.value / total) * 100)}%`,
+                            background: DIFFICULTY_COLORS[entry.name],
+                          }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
+                {leetcodeStats.latest_rating ? (
+                  <li className="flex items-baseline justify-between border-t border-border pt-3 text-sm">
+                    <span className="text-muted-foreground">
+                      Contest rating
+                    </span>
+                    <span className="font-mono font-medium text-foreground">
+                      {Math.round(leetcodeStats.latest_rating)}
+                    </span>
+                  </li>
+                ) : null}
+              </ul>
             </div>
           </div>
 
@@ -247,8 +292,6 @@ export function ProblemSolvingStats({
             </div>
           )}
         </div>
-
-
       </CardContent>
     </Card>
   );

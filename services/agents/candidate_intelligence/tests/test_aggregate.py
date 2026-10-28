@@ -23,6 +23,7 @@ def _all_sub_scores(**overrides) -> dict[str, SubScore]:
         "leadership": SubScore(value=30.0),
         "open_source_contributions": SubScore(value=55.0),
         "hackathon_performance": SubScore(value=45.0),
+        "verified_credentials": SubScore(value=35.0),
     }
     assert set(base) == set(SUB_SCORE_WEIGHTS), "fixture drifted from SUB_SCORE_WEIGHTS"
     base.update(overrides)
@@ -57,8 +58,8 @@ def test_compute_confidence_full_evidence():
 
 
 def test_compute_confidence_partial_evidence_below_threshold():
-    # Null out a majority of the 9 sub-scores so confidence lands below the 0.5
-    # threshold this test is about (3 of 9 available = 0.33).
+    # Null out a majority of the 10 sub-scores so confidence lands below the 0.5
+    # threshold this test is about (3 of 10 available = 0.3).
     sub_scores = _all_sub_scores(
         problem_solving=SubScore(value=None),
         project_quality=SubScore(value=None),
@@ -66,6 +67,7 @@ def test_compute_confidence_partial_evidence_below_threshold():
         community_participation=SubScore(value=None),
         open_source_contributions=SubScore(value=None),
         hackathon_performance=SubScore(value=None),
+        verified_credentials=SubScore(value=None),
     )
     confidence = compute_confidence(sub_scores)
     assert confidence.available_signals == 3

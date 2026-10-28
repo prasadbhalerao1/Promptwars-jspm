@@ -85,6 +85,7 @@ def _run_sync(state: MatchingState) -> dict:
                 "leadership": candidate.get("sub_scores", {}).get("leadership"),
                 "open_source_contributions": candidate.get("sub_scores", {}).get("open_source_contributions"),
                 "hackathon_performance": candidate.get("sub_scores", {}).get("hackathon_performance"),
+                "verified_credentials": candidate.get("sub_scores", {}).get("verified_credentials"),
             },
             candidate_skills=skill_signals,
             required_skills=required_skills,

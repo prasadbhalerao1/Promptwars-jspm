@@ -155,11 +155,11 @@ export default function PitchDeckReportPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-amber-500/20 bg-amber-500/5">
+        <Card className="border-warning/20 bg-warning/5">
           <CardContent className="flex items-start gap-3 p-4">
-            <AlertCircle className="size-5 shrink-0 text-amber-500 mt-0.5" />
+            <AlertCircle className="size-5 shrink-0 text-warning mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              <p className="text-sm font-medium text-warning">
                 Generic Presentation Evaluation
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -232,12 +232,12 @@ export default function PitchDeckReportPage() {
                     <span className="text-sm font-medium text-foreground">{req.requirement}</span>
                   </div>
                   {req.status === "met" && (
-                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <Badge className="bg-success/10 text-success border border-success/20">
                       <CheckCircle2 className="size-3 mr-1" /> Met
                     </Badge>
                   )}
                   {req.status === "partially_met" && (
-                    <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <Badge className="bg-warning/10 text-warning border border-warning/20">
                       <AlertCircle className="size-3 mr-1" /> Partially Met
                     </Badge>
                   )}
@@ -279,7 +279,7 @@ export default function PitchDeckReportPage() {
 
                 {req.identified_gaps && req.identified_gaps.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Gaps & Assumptions:</p>
+                    <p className="text-xs font-medium text-warning">Gaps & Assumptions:</p>
                     <ul className="list-disc list-inside text-xs text-muted-foreground">
                       {req.identified_gaps.map((gap, i) => (
                         <li key={i}>{gap}</li>

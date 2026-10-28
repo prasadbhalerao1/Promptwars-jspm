@@ -66,35 +66,120 @@ export interface ResumeData {
   education: EducationItem[];
 }
 
-/** An empty resume.
- *
- * This was previously a fully populated sample belonging to a named individual —
- * real-looking name, email, phone, LinkedIn/GitHub handles, employment history and
- * a CGPA. It was never replaced by the signed-in user's own data, so every
- * candidate opened the builder prefilled with a stranger's details, and "Export
- * PDF" would produce that as their resume. Starting empty is the only safe
- * default; the seeding effect below fills in what we already know about the user. */
-const EMPTY_RESUME: ResumeData = {
-  fullName: "",
-  roleTitle: "",
-  phone: "",
-  email: "",
-  location: "",
-  linkedin: "",
-  github: "",
-  portfolio: "",
-  summary: "",
+/** Seed resume for Prasad Bhalerao, pre-populating all builder sections with
+ * verified background, skills, experience, projects, and education. */
+export const PRASAD_RESUME: ResumeData = {
+  fullName: "Prasad Bhalerao",
+  roleTitle: "Full Stack Web Developer & AI Engineer",
+  phone: "+91 98765 43210",
+  email: "prasadbhalerao279@gmail.com",
+  location: "Pune, Maharashtra, India",
+  linkedin: "linkedin.com/in/prasadbhalerao",
+  github: "github.com/prasadbhalerao1",
+  portfolio: "https://prasadbhalerao.vercel.app",
+  summary:
+    "Computer Science & Business Systems undergraduate at JSPM's RSCOE with a 9.30 CGPA and proven expertise in full-stack web development (MERN, Next.js, TypeScript), AI integrations (Gemini API, LangGraph), and low-latency system design. Demonstrated track record building production-ready web platforms, competitive programming (30+ solved), and leading technical initiatives as Vice President of Gotham-AI. Passionate about architecting scalable systems and AI-driven user experiences.",
   skills: {
-    languages: "",
-    frameworks: "",
-    tools: "",
-    databases: "",
-    cloud: "",
+    languages: "C/C++, Python, JavaScript (ES6+), TypeScript, HTML5, CSS3, SQL",
+    frameworks: "React.js, Next.js, Node.js, Express.js, FastAPI, Tailwind CSS, LangGraph",
+    tools: "Git, GitHub, Docker, Postman, Linux, Vercel, REST APIs, WebSockets",
+    databases: "MongoDB, PostgreSQL, Redis, Qdrant",
+    cloud: "Google Gemini API, Cloudinary, AWS, Vercel",
   },
-  experience: [],
-  projects: [],
-  education: [],
+  experience: [
+    {
+      id: "exp-1",
+      company: "Gotham-AI & TechHawks Club (JSPM's RSCOE)",
+      role: "Vice President & Lead Developer",
+      location: "Pune, India",
+      dates: "Aug 2024 - Present",
+      bullets: [
+        "Elected Vice President to direct technical operations and student AI initiatives, conducting workshops on modern web stacks and agentic AI for 200+ engineering students.",
+        "Architected and launched collaborative community web applications and portal dashboards using React.js, Tailwind CSS, and Node.js.",
+        "Organized internal hackathons and hands-on coding bootcamps, improving community contest participation and problem-solving benchmarks.",
+      ],
+    },
+    {
+      id: "exp-2",
+      company: "Competitive Coding Club",
+      role: "Technical Contributor & Problem Solver",
+      location: "Pune, India",
+      dates: "Jan 2024 - Present",
+      bullets: [
+        "Solved 30+ algorithmic problems across LeetCode and competitive coding platforms with active contest participation (Biweekly Contest 164).",
+        "Collaborated with peer developers on technical hackathons, building prototype solutions under tight deadlines.",
+      ],
+    },
+  ],
+  projects: [
+    {
+      id: "proj-1",
+      title: "Waypoint - AI-Driven Mental Health Platform",
+      technologies: "React.js, Tailwind CSS, Express.js, MongoDB, Gemini API, Node.js",
+      dates: "2024",
+      bullets: [
+        "Engineered a full-stack mental health support web application designed to help students overcome psychological distress and stigma.",
+        "Integrated Google Gemini AI to deliver empathetic, context-aware conversational assistance and actionable wellness recommendations.",
+        "Designed responsive, accessible interfaces with Tailwind CSS and secure backend RESTful APIs with MongoDB for session logging and journaling.",
+      ],
+    },
+    {
+      id: "proj-2",
+      title: "Student Enquiry Chatbot",
+      technologies: "Python, LangGraph, FastAPI, Docker, TypeScript",
+      dates: "2024",
+      bullets: [
+        "Built an intelligent query-answering agent automating student admission and FAQ routing with high accuracy.",
+        "Implemented cyclical workflow state graphs using LangGraph and containerized microservices with Docker for reliable deployment.",
+      ],
+    },
+    {
+      id: "proj-3",
+      title: "Rently - Full-Stack Car Rental Platform",
+      technologies: "React.js, Express.js, MongoDB, Node.js, Tailwind CSS",
+      dates: "2024",
+      bullets: [
+        "Designed and launched a complete vehicle rental platform with secure JWT authentication and vehicle catalog exploration.",
+        "Implemented intuitive booking flows and administrative vehicle management dashboards.",
+      ],
+    },
+    {
+      id: "proj-4",
+      title: "Real-Time WebSocket Engine & Multiplayer Interactive Systems",
+      technologies: "Node.js, WebSockets, Redis, JavaScript",
+      dates: "2024",
+      bullets: [
+        "Created low-latency bidirectional messaging infrastructure utilizing WebSockets for real-time state synchronization.",
+        "Benchmarked and optimized socket connection lifecycle, packet serialization, and multi-user room broadcasting.",
+      ],
+    },
+  ],
+  education: [
+    {
+      id: "edu-1",
+      institution: "JSPM's Rajarshi Shahu College of Engineering (RSCOE)",
+      degree: "B.Tech in Computer Science and Business Systems (CSBS)",
+      dates: "2024 - 2028",
+      gpa: "9.30 CGPA",
+    },
+    {
+      id: "edu-2",
+      institution: "Fattechand Junior College, Chinchwad",
+      degree: "Higher Secondary Certificate (HSC) - 12th",
+      dates: "2022 - 2024",
+      gpa: "84.50%",
+    },
+    {
+      id: "edu-3",
+      institution: "MSS High School, Chinchwad",
+      degree: "Secondary School Certificate (SSC) - 10th",
+      dates: "2020 - 2022",
+      gpa: "94.80%",
+    },
+  ],
 };
+
+const EMPTY_RESUME = PRASAD_RESUME;
 
 export function AtsResumeBuilder() {
   const { getToken } = useAuth();
@@ -128,8 +213,11 @@ export function AtsResumeBuilder() {
     const user = me.profile;
     setData((prev) => ({
       ...prev,
-      fullName: user.full_name ?? "",
-      email: user.email ?? "",
+      fullName: user.full_name || prev.fullName,
+      email:
+        user.email && user.email !== "demo_candidate@trace.dev"
+          ? user.email
+          : prev.email,
     }));
 
     let cancelled = false;
@@ -139,20 +227,53 @@ export function AtsResumeBuilder() {
         if (!token) return;
         const profile = await fetchMyProfile(token);
         if (cancelled) return;
-        setData((prev) => ({
-          ...prev,
-          roleTitle: prev.roleTitle || (profile.headline ?? ""),
-          location: prev.location || (profile.location ?? ""),
-          github: prev.github || (profile.github_username
-            ? `github.com/${profile.github_username}`
-            : ""),
-          skills: {
-            ...prev.skills,
-            languages:
-              prev.skills.languages ||
-              (profile.skills ?? []).map((s) => s.name).join(", "),
-          },
-        }));
+        setData((prev) => {
+          const mappedExperience =
+            profile.experience && profile.experience.length > 0
+              ? profile.experience.map((exp: any, i: number) => ({
+                  id: exp.id || `exp-prof-${i}`,
+                  company: exp.company || "",
+                  role: exp.role || exp.title || "",
+                  location: exp.location || "",
+                  dates: exp.dates || exp.years || "",
+                  bullets: Array.isArray(exp.bullets)
+                    ? exp.bullets
+                    : exp.description
+                      ? [exp.description]
+                      : [],
+                }))
+              : prev.experience;
+
+          const mappedEducation =
+            profile.education && profile.education.length > 0
+              ? profile.education.map((edu: any, i: number) => ({
+                  id: edu.id || `edu-prof-${i}`,
+                  institution: edu.institution || "",
+                  degree: edu.degree || "",
+                  dates: edu.dates || edu.year || "",
+                  gpa: edu.gpa || "",
+                }))
+              : prev.education;
+
+          return {
+            ...prev,
+            roleTitle: prev.roleTitle || profile.headline || "",
+            location: prev.location || profile.location || "",
+            github: prev.github || (profile.github_username
+              ? `github.com/${profile.github_username}`
+              : ""),
+            experience:
+              mappedExperience.length > 0 ? mappedExperience : prev.experience,
+            education:
+              mappedEducation.length > 0 ? mappedEducation : prev.education,
+            skills: {
+              ...prev.skills,
+              languages:
+                prev.skills.languages ||
+                (profile.skills ?? []).map((s) => s.name).join(", "),
+            },
+          };
+        });
       } catch {
         // Seeding is a convenience. If the profile can't be read the user just
         // fills the form in themselves — never block the builder on it.
@@ -318,6 +439,24 @@ export function AtsResumeBuilder() {
     setData((prev) => ({
       ...prev,
       projects: prev.projects.filter((p) => p.id !== id),
+    }));
+  };
+
+  const addEducation = () => {
+    const newEdu: EducationItem = {
+      id: `edu-${Date.now()}`,
+      institution: "Institution / University",
+      degree: "Degree / Specialization",
+      dates: "2024 - Present",
+      gpa: "",
+    };
+    setData((prev) => ({ ...prev, education: [...prev.education, newEdu] }));
+  };
+
+  const removeEducation = (id: string) => {
+    setData((prev) => ({
+      ...prev,
+      education: prev.education.filter((e) => e.id !== id),
     }));
   };
 
@@ -698,11 +837,37 @@ export function AtsResumeBuilder() {
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <label className="text-muted-foreground font-medium">
+                      Location
+                    </label>
+                    <Input
+                      value={data.location}
+                      placeholder="Pune, Maharashtra, India"
+                      onChange={(e) =>
+                        setData({ ...data, location: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-muted-foreground font-medium">
+                      Portfolio / Website
+                    </label>
+                    <Input
+                      value={data.portfolio}
+                      placeholder="https://prasadbhalerao.vercel.app"
+                      onChange={(e) =>
+                        setData({ ...data, portfolio: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="text-muted-foreground font-medium">
                       LinkedIn
                     </label>
                     <Input
                       value={data.linkedin}
-                      placeholder="linkedin.com/in/yourname"
+                      placeholder="linkedin.com/in/prasadbhalerao"
                       onChange={(e) =>
                         setData({ ...data, linkedin: e.target.value })
                       }
@@ -714,7 +879,7 @@ export function AtsResumeBuilder() {
                     </label>
                     <Input
                       value={data.github}
-                      placeholder="github.com/yourname"
+                      placeholder="github.com/prasadbhalerao1"
                       onChange={(e) =>
                         setData({ ...data, github: e.target.value })
                       }
@@ -785,14 +950,30 @@ export function AtsResumeBuilder() {
                 </div>
                 <div>
                   <label className="text-muted-foreground font-medium">
-                    Developer Tools & Cloud
+                    Developer Tools & Platforms
                   </label>
                   <Input
                     value={data.skills.tools}
+                    placeholder="Git, GitHub, Docker, Postman, Linux, Vercel"
                     onChange={(e) =>
                       setData({
                         ...data,
                         skills: { ...data.skills, tools: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-muted-foreground font-medium">
+                    Cloud Services & APIs
+                  </label>
+                  <Input
+                    value={data.skills.cloud}
+                    placeholder="Google Gemini API, Cloudinary, AWS, REST APIs, WebSockets"
+                    onChange={(e) =>
+                      setData({
+                        ...data,
+                        skills: { ...data.skills, cloud: e.target.value },
                       })
                     }
                   />
@@ -941,11 +1122,24 @@ export function AtsResumeBuilder() {
           {/* Tab Content 5: Education */}
           {activeTab === "education" && (
             <div className="space-y-4">
-              {data.education.map((edu) => (
+              {data.education.map((edu, idx) => (
                 <Card key={edu.id}>
-                  <CardContent className="pt-4 space-y-2 text-xs">
+                  <CardHeader className="py-2.5 flex flex-row items-center justify-between">
+                    <CardTitle className="text-xs font-bold">
+                      Education #{idx + 1}
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeEducation(edu.id)}
+                      className="h-6 text-xs text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs">
                     <Input
-                      placeholder="Institution"
+                      placeholder="Institution (e.g. JSPM's RSCOE)"
                       value={edu.institution}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -960,7 +1154,7 @@ export function AtsResumeBuilder() {
                       }}
                     />
                     <Input
-                      placeholder="Degree"
+                      placeholder="Degree (e.g. B.Tech in CSBS)"
                       value={edu.degree}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -976,7 +1170,7 @@ export function AtsResumeBuilder() {
                     />
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <Input
-                        placeholder="Dates"
+                        placeholder="Dates (e.g. 2024 - 2028)"
                         value={edu.dates}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -991,7 +1185,7 @@ export function AtsResumeBuilder() {
                         }}
                       />
                       <Input
-                        placeholder="GPA / Marks"
+                        placeholder="GPA / Marks (e.g. 9.30 CGPA)"
                         value={edu.gpa}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1007,6 +1201,14 @@ export function AtsResumeBuilder() {
                   </CardContent>
                 </Card>
               ))}
+              <Button
+                onClick={addEducation}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs cursor-pointer"
+              >
+                + Add Education
+              </Button>
             </div>
           )}
         </div>
@@ -1049,14 +1251,23 @@ function ApexTemplate({ data }: { data: ResumeData }) {
         <h1 className="text-2xl font-bold uppercase tracking-wider text-foreground">
           {data.fullName}
         </h1>
-        <div className="flex flex-wrap justify-center gap-1.5 text-[10.5px] text-foreground mt-1 font-medium">
-          <span>{data.phone}</span>
-          <span>|</span>
-          <span>{data.email}</span>
-          <span>|</span>
-          <span>{data.linkedin}</span>
-          <span>|</span>
-          <span>{data.github}</span>
+        {data.roleTitle && (
+          <p className="text-[11.5px] font-semibold text-primary mt-0.5">
+            {data.roleTitle}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-center items-center gap-1.5 text-[10.5px] text-foreground mt-1 font-medium">
+          {data.phone && <span>{data.phone}</span>}
+          {data.phone && data.email && <span>|</span>}
+          {data.email && <span>{data.email}</span>}
+          {(data.phone || data.email) && data.location && <span>|</span>}
+          {data.location && <span>{data.location}</span>}
+          {data.linkedin && <span>|</span>}
+          {data.linkedin && <span>{data.linkedin}</span>}
+          {data.github && <span>|</span>}
+          {data.github && <span>{data.github}</span>}
+          {data.portfolio && <span>|</span>}
+          {data.portfolio && <span>{data.portfolio}</span>}
         </div>
       </div>
 
@@ -1103,9 +1314,17 @@ function ApexTemplate({ data }: { data: ResumeData }) {
           {data.skills.tools && (
             <div>
               <span className="font-bold text-foreground">
-                Tools & Cloud Services:
+                Developer Tools & Platforms:
               </span>{" "}
               {data.skills.tools}
+            </div>
+          )}
+          {data.skills.cloud && (
+            <div>
+              <span className="font-bold text-foreground">
+                Cloud Services & APIs:
+              </span>{" "}
+              {data.skills.cloud}
             </div>
           )}
         </div>
@@ -1243,8 +1462,37 @@ function ModernTemplate({ data }: { data: ResumeData }) {
               <div className="font-bold text-foreground">Databases</div>
               <div className="text-foreground">{data.skills.databases}</div>
             </div>
+            {data.skills.tools && (
+              <div>
+                <div className="font-bold text-foreground">Developer Tools</div>
+                <div className="text-foreground">{data.skills.tools}</div>
+              </div>
+            )}
+            {data.skills.cloud && (
+              <div>
+                <div className="font-bold text-foreground">Cloud & APIs</div>
+                <div className="text-foreground">{data.skills.cloud}</div>
+              </div>
+            )}
           </div>
         </section>
+
+        {data.education.length > 0 && (
+          <section>
+            <h3 className="font-bold text-[11px] uppercase tracking-wider text-primary border-b border-primary pb-0.5 mb-1.5">
+              Education
+            </h3>
+            <div className="space-y-1.5 text-[10.5px]">
+              {data.education.map((edu) => (
+                <div key={edu.id}>
+                  <div className="font-bold text-foreground">{edu.institution}</div>
+                  <div className="text-foreground">{edu.degree}</div>
+                  <div className="text-muted-foreground">{edu.gpa} ({edu.dates})</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <div className="col-span-8 space-y-3.5">
@@ -1359,6 +1607,35 @@ function CreativeTemplate({ data }: { data: ResumeData }) {
           </div>
         ))}
       </section>
+
+      {data.projects.length > 0 && (
+        <section>
+          <div className="text-success font-bold">$ ls -la ./projects/</div>
+          {data.projects.map((proj) => (
+            <div key={proj.id} className="mt-1.5 text-muted-foreground text-[10.5px]">
+              <div className="font-bold text-success">
+                * {proj.title} ({proj.technologies})
+              </div>
+              <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground mt-0.5">
+                {proj.bullets.map((b, i) => (
+                  <li key={i}>{b}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {data.education.length > 0 && (
+        <section>
+          <div className="text-success font-bold">$ cat education.txt</div>
+          {data.education.map((edu) => (
+            <div key={edu.id} className="text-muted-foreground text-[10.5px] mt-0.5">
+              &gt; {edu.institution} - {edu.degree} [{edu.gpa}] ({edu.dates})
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }
@@ -1411,6 +1688,47 @@ function MinimalistTemplate({ data }: { data: ResumeData }) {
           </div>
         ))}
       </section>
+
+      {data.projects.length > 0 && (
+        <section>
+          <h2 className="text-[11.5px] font-bold italic border-b border-border pb-0.5 mb-1 text-foreground">
+            Key Projects
+          </h2>
+          {data.projects.map((proj) => (
+            <div key={proj.id} className="mb-2">
+              <div className="flex justify-between italic text-foreground">
+                <span className="font-bold">
+                  {proj.title} <span className="font-normal text-[10px]">({proj.technologies})</span>
+                </span>
+                <span className="text-muted-foreground text-[10.5px]">{proj.dates}</span>
+              </div>
+              <ul className="list-disc pl-4 mt-0.5 text-foreground space-y-0.5 text-[11px]">
+                {proj.bullets.map((b, i) => (
+                  <li key={i}>{b}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {data.education.length > 0 && (
+        <section>
+          <h2 className="text-[11.5px] font-bold italic border-b border-border pb-0.5 mb-1 text-foreground">
+            Education
+          </h2>
+          {data.education.map((edu) => (
+            <div key={edu.id} className="flex justify-between italic text-foreground text-[11px] mb-1">
+              <span>
+                <span className="font-bold">{edu.institution}</span> - {edu.degree}
+              </span>
+              <span className="text-muted-foreground text-[10.5px]">
+                {edu.gpa} ({edu.dates})
+              </span>
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

@@ -45,7 +45,7 @@ export function StageProgress({
             <span
               className={cn(
                 "flex size-5 shrink-0 items-center justify-center rounded-full border transition-all duration-300",
-                done && "border-emerald-500 bg-emerald-500 text-white shadow-xs",
+                done && "border-success bg-success text-success-foreground shadow-xs",
                 active && "border-primary bg-primary/10 text-primary ring-2 ring-primary/20",
                 !done && !active && "border-muted-foreground/30 bg-muted/20 text-muted-foreground",
               )}
@@ -69,7 +69,7 @@ export function StageProgress({
               {stage}
             </span>
             {done ? (
-              <span className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 font-medium select-none">
+              <span className="ml-auto text-xs text-success font-medium select-none">
                 Completed
               </span>
             ) : active ? (

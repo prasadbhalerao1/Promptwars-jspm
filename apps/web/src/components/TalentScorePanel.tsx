@@ -100,7 +100,7 @@ export function TalentScorePanel({ score }: { score: TalentScoreResponse }) {
                 <span className="text-xs font-mono font-semibold text-foreground">
                   {sub.value?.toFixed(1)}
                 </span>
-                <span className="text-[10px] text-muted-foreground font-mono">/100</span>
+                <span className="text-xs text-muted-foreground font-mono">/100</span>
               </div>
             </div>
           ))}

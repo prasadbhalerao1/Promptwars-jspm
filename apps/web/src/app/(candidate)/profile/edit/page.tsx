@@ -30,7 +30,7 @@ import {
   type HackathonExperienceResult,
 } from "@/lib/api";
 import { Input } from "@/components/ui/input";
-import { Page } from "@/components/common/PageHeader";
+import { Page, PageHeader } from "@/components/common/PageHeader";
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -184,7 +184,7 @@ export default function ProfileEditPage() {
       if (!token) throw new Error("No session token");
       const updated = await connectGithubUsername(token, githubInput.trim());
       setProfile(updated);
-      setNotice("GitHub username connected — analyzing repositories...");
+      setNotice("GitHub username connected - analyzing repositories...");
       setGithubInput("");
       const result = await pollIngestionStatus(token, {
         onUpdate: (status) => {
@@ -196,13 +196,11 @@ export default function ProfileEditPage() {
       if (result.status === "failed") {
         setError(result.error ?? "GitHub analysis failed");
       } else {
-        setNotice("GitHub connected — Talent Score updated!");
+        setNotice("GitHub connected - Talent Score updated!");
       }
       await reload();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not connect GitHub",
-      );
+      setError(err instanceof Error ? err.message : "Could not connect GitHub");
     } finally {
       setBusy(null);
       setIngestionStage(null);
@@ -461,443 +459,467 @@ export default function ProfileEditPage() {
   }
 
   return (
-    <Page width="reading" className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading">Connect your evidence</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
-          {ingestionStage && (
-            <StageProgress
-              stages={
-                busy === "github" || Boolean(searchParams.get("github"))
-                  ? GITHUB_INGESTION_STAGES
-                  : INGESTION_STAGES
-              }
-              currentStage={ingestionStage}
-              className="rounded-md border bg-muted/30 p-3"
-            />
-          )}
+    <Page>
+      <PageHeader
+        title="Evidence & profile"
+        description="Connect the sources your Talent Score is built from, and keep your profile details current."
+      />
+      <div className="grid grid-cols-1 items-start gap-4 md:gap-5 lg:grid-cols-2">
+        <div className="min-w-0 space-y-4 md:space-y-5">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-heading">
+                Connect your evidence
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              {notice && (
+                <p className="text-sm text-muted-foreground">{notice}</p>
+              )}
+              {ingestionStage && (
+                <StageProgress
+                  stages={
+                    busy === "github" || Boolean(searchParams.get("github"))
+                      ? GITHUB_INGESTION_STAGES
+                      : INGESTION_STAGES
+                  }
+                  currentStage={ingestionStage}
+                  className="rounded-md border bg-muted/30 p-3"
+                />
+              )}
 
-          <div className="flex flex-col gap-3 rounded-lg border border-border/50 p-3 bg-muted/10">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex-1">
-                <p className="text-sm font-medium">GitHub</p>
-                <p className="text-xs text-muted-foreground">
-                  {profile.github_username
-                    ? `Connected as ${profile.github_username}`
-                    : "Not connected — enter username to analyze public repos, or connect via OAuth"}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Input
-                    value={githubInput}
-                    onChange={(e) => setGithubInput(e.target.value)}
-                    placeholder={profile.github_username ?? "GitHub username (e.g. torvalds)"}
-                    className="max-w-64"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleConnectGithubUsername}
-                    disabled={busy === "github" || !githubInput.trim()}
-                    variant="default"
-                    size="sm"
-                  >
-                    {busy === "github" ? "Syncing…" : "Sync Profile"}
-                  </Button>
-                </div>
-              </div>
-              <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
-                <span className="text-[11px] text-muted-foreground">Or verify ownership:</span>
-                <Button
-                  type="button"
-                  onClick={handleConnectGithub}
-                  disabled={busy === "github"}
-                  variant="outline"
-                  size="sm"
-                >
-                  {profile.github_username ? "Reconnect OAuth" : "OAuth Connect"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1">
-              <p className="text-sm font-medium">LeetCode</p>
-              <p className="text-xs text-muted-foreground">
-                {profile.leetcode_username
-                  ? `Connected as ${profile.leetcode_username}`
-                  : "Not connected"}
-              </p>
-              <Input
-                value={leetcodeInput}
-                onChange={(e) => setLeetcodeInput(e.target.value)}
-                placeholder={profile.leetcode_username ?? "LeetCode username"}
-                className="mt-2 max-w-52"
-              />
-            </div>
-            <Button
-              onClick={handleConnectLeetcode}
-              disabled={busy === "leetcode" || !leetcodeInput.trim()}
-              variant="outline"
-            >
-              {busy === "leetcode"
-                ? "Connecting…"
-                : profile.leetcode_username
-                  ? "Reconnect"
-                  : "Connect"}
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Resume</p>
-              <p className="text-xs text-muted-foreground">PDF or DOCX</p>
-            </div>
-            <Button
-              variant="outline"
-              disabled={busy === "resume"}
-              onClick={() => resumeInputRef.current?.click()}
-            >
-              {busy === "resume" ? "Uploading…" : "Upload résumé"}
-            </Button>
-            <input
-              ref={resumeInputRef}
-              type="file"
-              accept=".pdf,.docx,.doc"
-              className="hidden"
-              onChange={handleResumeUpload}
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Certificates</p>
-              <p className="text-xs text-muted-foreground">Image or PDF</p>
-            </div>
-            <Button
-              variant="outline"
-              disabled={busy === "certificate"}
-              onClick={() => certificateInputRef.current?.click()}
-            >
-              {busy === "certificate" ? "Scanning…" : "Upload certificate"}
-            </Button>
-            <input
-              ref={certificateInputRef}
-              type="file"
-              accept="image/*,.pdf"
-              className="hidden"
-              onChange={handleCertificateUpload}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border bg-card text-foreground shadow-flat ">
-        <CardHeader className="pb-3 border-b border-border">
-          <CardTitle className="font-heading text-sm font-semibold tracking-wider text-muted-foreground uppercase">
-            Edit Profile Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <div className="space-y-1.5">
-            <label className="text-meta font-medium text-muted-foreground font-mono">
-              Full Name
-            </label>
-            <Input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="e.g. Jane Doe"
-              className="border-border bg-card/30 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-meta font-medium text-muted-foreground font-mono">
-              Headline
-            </label>
-            <Input
-              value={headline}
-              onChange={(e) => setHeadline(e.target.value)}
-              placeholder="e.g. Senior Software Engineer"
-              className="border-border bg-card/30 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-meta font-medium text-muted-foreground font-mono">
-              Location
-            </label>
-            <Input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="e.g. San Francisco, CA"
-              className="border-border bg-card/30 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-meta font-medium text-muted-foreground font-mono">
-                College / University
-              </label>
-              <Input
-                value={college}
-                onChange={(e) => setCollege(e.target.value)}
-                placeholder="e.g. Stanford University"
-                className="border-border bg-card/30 focus-visible:ring-ring"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-meta font-medium text-muted-foreground font-mono">
-                Degree
-              </label>
-              <Input
-                value={degree}
-                onChange={(e) => setDegree(e.target.value)}
-                placeholder="e.g. B.S. in Computer Science"
-                className="border-border bg-card/30 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSaveProfileInfo}
-            disabled={busy === "save_profile"}
-            className="mt-2 w-full"
-          >
-            {busy === "save_profile" ? "Saving..." : "Save Profile Details"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <ConflictResolver profile={profile} />
-
-      {/* Hackathon Experience — self-reported external hackathon wins/placements */}
-      <Card className="border-border bg-card text-foreground shadow-flat ">
-        <CardHeader className="pb-3 border-b border-border">
-          <CardTitle className="font-heading text-sm font-semibold tracking-wider text-muted-foreground uppercase">
-            Hackathon Experience
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <p className="text-xs text-muted-foreground">
-            Add hackathon wins, top-5 finishes, and other achievements from
-            external hackathons. These contribute to your Talent Score.
-          </p>
-
-          {/* List of existing hackathon entries */}
-          {profile.hackathon_experience &&
-            profile.hackathon_experience.length > 0 && (
-              <div className="space-y-2">
-                {profile.hackathon_experience.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-center justify-between gap-4 rounded-md border border-border bg-card/50 p-3"
-                  >
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">
-                        {entry.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {entry.result === "winner" && "Winner"}
-                        {entry.result === "top5" && "Top 5"}
-                        {entry.result === "finalist" && "Finalist"}
-                        {entry.result === "participant" && "Participant"}
-                        {" • "}
-                        Importance: {entry.weight}/5 • {entry.date}
-                      </p>
-                      <p className="text-meta text-muted-foreground mt-1">
-                        self-reported
-                      </p>
+              <div className="flex flex-col gap-3 rounded-lg border border-border/50 p-3 bg-muted/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">GitHub</p>
+                    <p className="text-xs text-muted-foreground">
+                      {profile.github_username
+                        ? `Connected as ${profile.github_username}`
+                        : "Not connected - enter username to analyze public repos, or connect via OAuth"}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        value={githubInput}
+                        onChange={(e) => setGithubInput(e.target.value)}
+                        placeholder={
+                          profile.github_username ??
+                          "GitHub username (e.g. torvalds)"
+                        }
+                        className="max-w-64"
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleConnectGithubUsername}
+                        disabled={busy === "github" || !githubInput.trim()}
+                        variant="default"
+                        size="sm"
+                      >
+                        {busy === "github" ? "Syncing…" : "Sync Profile"}
+                      </Button>
                     </div>
+                  </div>
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                    <span className="text-xs text-muted-foreground">
+                      Or verify ownership:
+                    </span>
                     <Button
-                      onClick={() => handleRemoveHackathonExperience(entry.id)}
-                      disabled={busy === `remove_hackathon_${entry.id}`}
+                      type="button"
+                      onClick={handleConnectGithub}
+                      disabled={busy === "github"}
                       variant="outline"
                       size="sm"
-                      className="text-destructive hover:text-destructive"
                     >
-                      Remove
+                      {profile.github_username
+                        ? "Reconnect OAuth"
+                        : "OAuth Connect"}
                     </Button>
                   </div>
-                ))}
-              </div>
-            )}
-
-          {/* Add new hackathon entry form */}
-          {!showHackathonForm ? (
-            <Button
-              onClick={() => setShowHackathonForm(true)}
-              variant="outline"
-              className="w-full"
-            >
-              + Add Hackathon Experience
-            </Button>
-          ) : (
-            <div className="space-y-3 rounded-md border border-border bg-card/30 p-4">
-              <div className="space-y-1.5">
-                <label className="text-meta font-medium text-muted-foreground font-mono">
-                  Hackathon Name
-                </label>
-                <Input
-                  value={hackathonName}
-                  onChange={(e) => setHackathonName(e.target.value)}
-                  placeholder="e.g. HackIndia 2025, Smart India Hackathon"
-                  className="border-border bg-card focus-visible:ring-ring"
-                />
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-meta font-medium text-muted-foreground font-mono">
-                    Result
-                  </label>
-                  <select
-                    className="select-control"
-                    value={hackathonResult}
-                    onChange={(e) =>
-                      setHackathonResult(
-                        e.target.value as HackathonExperienceResult,
-                      )
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">LeetCode</p>
+                  <p className="text-xs text-muted-foreground">
+                    {profile.leetcode_username
+                      ? `Connected as ${profile.leetcode_username}`
+                      : "Not connected"}
+                  </p>
+                  <Input
+                    value={leetcodeInput}
+                    onChange={(e) => setLeetcodeInput(e.target.value)}
+                    placeholder={
+                      profile.leetcode_username ?? "LeetCode username"
                     }
-                  >
-                    <option value="winner">Winner</option>
-                    <option value="top5">Top 5</option>
-                    <option value="finalist">Finalist</option>
-                    <option value="participant">Participant</option>
-                  </select>
+                    className="mt-2 max-w-52"
+                  />
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-meta font-medium text-muted-foreground font-mono">
-                    Importance (1-5)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="range"
-                      min="1"
-                      max="5"
-                      value={hackathonWeight}
-                      onChange={(e) =>
-                        setHackathonWeight(parseInt(e.target.value))
-                      }
-                      className="flex-1"
-                    />
-                    <span className="w-8 text-center text-sm font-medium text-foreground">
-                      {hackathonWeight}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-meta font-medium text-muted-foreground font-mono">
-                  Date
-                </label>
-                <Input
-                  type="date"
-                  value={hackathonDate}
-                  onChange={(e) => setHackathonDate(e.target.value)}
-                  className="border-border bg-card focus-visible:ring-ring"
-                />
-              </div>
-
-              <div className="flex gap-2">
                 <Button
-                  onClick={handleAddHackathonExperience}
-                  disabled={
-                    busy === "add_hackathon" ||
-                    !hackathonName.trim() ||
-                    !hackathonDate
-                  }
-                  className="flex-1"
-                >
-                  {busy === "add_hackathon" ? "Adding…" : "Add Experience"}
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowHackathonForm(false);
-                    setHackathonName("");
-                    setHackathonResult("participant");
-                    setHackathonWeight(3);
-                    setHackathonDate("");
-                  }}
+                  onClick={handleConnectLeetcode}
+                  disabled={busy === "leetcode" || !leetcodeInput.trim()}
                   variant="outline"
                 >
-                  Cancel
+                  {busy === "leetcode"
+                    ? "Connecting…"
+                    : profile.leetcode_username
+                      ? "Reconnect"
+                      : "Connect"}
                 </Button>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Portfolio Username — lets existing candidates set/change their URL slug */}
-      <Card className="border-border bg-card text-foreground shadow-flat ">
-        <CardHeader className="pb-3 border-b border-border">
-          <CardTitle className="font-heading text-sm font-semibold tracking-wider text-muted-foreground uppercase">
-            Portfolio Username
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 pt-4">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Your unique public URL:{" "}
-            <span className="font-mono text-primary">
-              /{profile.username ?? "not set"}
-            </span>
-            {profile.username && (
-              <a
-                href={`/${profile.username}`}
-                target="_blank"
-                rel="noreferrer"
-                className="ml-2 text-primary hover:underline"
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">Resume</p>
+                  <p className="text-xs text-muted-foreground">PDF or DOCX</p>
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={busy === "resume"}
+                  onClick={() => resumeInputRef.current?.click()}
+                >
+                  {busy === "resume" ? "Uploading…" : "Upload résumé"}
+                </Button>
+                <input
+                  ref={resumeInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.doc"
+                  className="hidden"
+                  onChange={handleResumeUpload}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">Certificates</p>
+                  <p className="text-xs text-muted-foreground">Image or PDF</p>
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={busy === "certificate"}
+                  onClick={() => certificateInputRef.current?.click()}
+                >
+                  {busy === "certificate" ? "Scanning…" : "Upload certificate"}
+                </Button>
+                <input
+                  ref={certificateInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={handleCertificateUpload}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <ConflictResolver profile={profile} />
+
+          {/* Hackathon Experience — self-reported external hackathon wins/placements */}
+          <Card className="border-border bg-card text-foreground shadow-flat ">
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="font-heading text-sm font-semibold tracking-wider text-muted-foreground uppercase">
+                Hackathon Experience
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <p className="text-xs text-muted-foreground">
+                Add hackathon wins, top-5 finishes, and other achievements from
+                external hackathons. These contribute to your Talent Score.
+              </p>
+
+              {/* List of existing hackathon entries */}
+              {profile.hackathon_experience &&
+                profile.hackathon_experience.length > 0 && (
+                  <div className="space-y-2">
+                    {profile.hackathon_experience.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="flex items-center justify-between gap-4 rounded-md border border-border bg-card/50 p-3"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {entry.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.result === "winner" && "Winner"}
+                            {entry.result === "top5" && "Top 5"}
+                            {entry.result === "finalist" && "Finalist"}
+                            {entry.result === "participant" && "Participant"}
+                            {" • "}
+                            Importance: {entry.weight}/5 • {entry.date}
+                          </p>
+                          <p className="text-meta text-muted-foreground mt-1">
+                            self-reported
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() =>
+                            handleRemoveHackathonExperience(entry.id)
+                          }
+                          disabled={busy === `remove_hackathon_${entry.id}`}
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              {/* Add new hackathon entry form */}
+              {!showHackathonForm ? (
+                <Button
+                  onClick={() => setShowHackathonForm(true)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  + Add Hackathon Experience
+                </Button>
+              ) : (
+                <div className="space-y-3 rounded-md border border-border bg-card/30 p-4">
+                  <div className="space-y-1.5">
+                    <label className="text-meta font-medium text-muted-foreground font-mono">
+                      Hackathon Name
+                    </label>
+                    <Input
+                      value={hackathonName}
+                      onChange={(e) => setHackathonName(e.target.value)}
+                      placeholder="e.g. HackIndia 2025, Smart India Hackathon"
+                      className="border-border bg-card focus-visible:ring-ring"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-meta font-medium text-muted-foreground font-mono">
+                        Result
+                      </label>
+                      <select
+                        className="select-control"
+                        value={hackathonResult}
+                        onChange={(e) =>
+                          setHackathonResult(
+                            e.target.value as HackathonExperienceResult,
+                          )
+                        }
+                      >
+                        <option value="winner">Winner</option>
+                        <option value="top5">Top 5</option>
+                        <option value="finalist">Finalist</option>
+                        <option value="participant">Participant</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-meta font-medium text-muted-foreground font-mono">
+                        Importance (1-5)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min="1"
+                          max="5"
+                          value={hackathonWeight}
+                          onChange={(e) =>
+                            setHackathonWeight(parseInt(e.target.value))
+                          }
+                          className="flex-1"
+                        />
+                        <span className="w-8 text-center text-sm font-medium text-foreground">
+                          {hackathonWeight}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-meta font-medium text-muted-foreground font-mono">
+                      Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={hackathonDate}
+                      onChange={(e) => setHackathonDate(e.target.value)}
+                      className="border-border bg-card focus-visible:ring-ring"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleAddHackathonExperience}
+                      disabled={
+                        busy === "add_hackathon" ||
+                        !hackathonName.trim() ||
+                        !hackathonDate
+                      }
+                      className="flex-1"
+                    >
+                      {busy === "add_hackathon" ? "Adding…" : "Add Experience"}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowHackathonForm(false);
+                        setHackathonName("");
+                        setHackathonResult("participant");
+                        setHackathonWeight(3);
+                        setHackathonDate("");
+                      }}
+                      variant="outline"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="min-w-0 space-y-4 md:space-y-5">
+          <Card className="border-border bg-card text-foreground shadow-flat ">
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="font-heading text-sm font-semibold tracking-wider text-muted-foreground uppercase">
+                Edit Profile Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="space-y-1.5">
+                <label className="text-meta font-medium text-muted-foreground font-mono">
+                  Full Name
+                </label>
+                <Input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Jane Doe"
+                  className="border-border bg-card/30 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-meta font-medium text-muted-foreground font-mono">
+                  Headline
+                </label>
+                <Input
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  placeholder="e.g. Senior Software Engineer"
+                  className="border-border bg-card/30 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-meta font-medium text-muted-foreground font-mono">
+                  Location
+                </label>
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g. San Francisco, CA"
+                  className="border-border bg-card/30 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-meta font-medium text-muted-foreground font-mono">
+                    College / University
+                  </label>
+                  <Input
+                    value={college}
+                    onChange={(e) => setCollege(e.target.value)}
+                    placeholder="e.g. Stanford University"
+                    className="border-border bg-card/30 focus-visible:ring-ring"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-meta font-medium text-muted-foreground font-mono">
+                    Degree
+                  </label>
+                  <Input
+                    value={degree}
+                    onChange={(e) => setDegree(e.target.value)}
+                    placeholder="e.g. B.S. in Computer Science"
+                    className="border-border bg-card/30 focus-visible:ring-ring"
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSaveProfileInfo}
+                disabled={busy === "save_profile"}
+                className="mt-2 w-full"
               >
-                View →
-              </a>
-            )}
-          </p>
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 items-center rounded-md border border-border bg-card/30 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1">
-              <span className="select-none pl-3 text-sm text-muted-foreground">
-                yourdomain.com/
-              </span>
-              <Input
-                value={usernameInput}
-                onChange={(e) =>
-                  setUsernameInput(
-                    e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                  )
-                }
-                placeholder={profile.username ?? "yourname"}
-                className="border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 pl-1"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            <Button
-              onClick={handleSetUsername}
-              disabled={busy === "username" || !usernameInput.trim()}
-              
-            >
-              {busy === "username"
-                ? "Saving…"
-                : profile.username
-                  ? "Update"
-                  : "Set Username"}
-            </Button>
-          </div>
-          <p className="text-meta text-muted-foreground">
-            Only lowercase letters, numbers, and hyphens. Min 2 chars.
-          </p>
-        </CardContent>
-      </Card>
+                {busy === "save_profile" ? "Saving..." : "Save Profile Details"}
+              </Button>
+            </CardContent>
+          </Card>
 
-      <Button variant="link" onClick={() => router.push("/home")}>
-        View your Talent Score →
-      </Button>
+          {/* Portfolio Username — lets existing candidates set/change their URL slug */}
+          <Card className="border-border bg-card text-foreground shadow-flat ">
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="font-heading text-sm font-semibold tracking-wider text-muted-foreground uppercase">
+                Portfolio Username
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Your unique public URL:{" "}
+                <span className="font-mono text-primary">
+                  /{profile.username ?? "not set"}
+                </span>
+                {profile.username && (
+                  <a
+                    href={`/${profile.username}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-2 text-primary hover:underline"
+                  >
+                    View →
+                  </a>
+                )}
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-1 items-center rounded-md border border-border bg-card/30 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1">
+                  <span className="select-none pl-3 text-sm text-muted-foreground">
+                    yourdomain.com/
+                  </span>
+                  <Input
+                    value={usernameInput}
+                    onChange={(e) =>
+                      setUsernameInput(
+                        e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                      )
+                    }
+                    placeholder={profile.username ?? "yourname"}
+                    className="border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 pl-1"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+                <Button
+                  onClick={handleSetUsername}
+                  disabled={busy === "username" || !usernameInput.trim()}
+                >
+                  {busy === "username"
+                    ? "Saving…"
+                    : profile.username
+                      ? "Update"
+                      : "Set Username"}
+                </Button>
+              </div>
+              <p className="text-meta text-muted-foreground">
+                Only lowercase letters, numbers, and hyphens. Min 2 chars.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Button variant="link" onClick={() => router.push("/home")}>
+            View your Talent Score →
+          </Button>
+        </div>
+      </div>
     </Page>
   );
 }

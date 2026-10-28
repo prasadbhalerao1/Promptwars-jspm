@@ -33,7 +33,13 @@ import { RepositoryGridWrapper } from "@/components/repositories/RepositoryGridW
 import { SkillsSectionWrapper } from "@/components/skills/SkillsSectionWrapper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { fetchPublicPortfolio } from "@/lib/api";
 import { BACKEND_URL } from "@/lib/env";
 
@@ -86,6 +92,19 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
   const projects = github_summary?.projects || [];
   const topProjects = projects.slice(0, 4);
 
+  // Labelled from the score's own Evidence Confidence, never asserted.
+  const available = portfolio.confidence_available_signals ?? null;
+  const expected = portfolio.confidence_expected_signals ?? null;
+  const ratio = available !== null && expected ? available / expected : null;
+  const confidence =
+    ratio === null
+      ? { label: "Not scored yet", className: "text-muted-foreground" }
+      : ratio >= 0.75
+        ? { label: "High", className: "text-success" }
+        : ratio >= 0.5
+          ? { label: "Medium", className: "text-warning" }
+          : { label: "Low", className: "text-destructive" };
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
@@ -95,14 +114,13 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
           {/* TILE 1: Hero & Identity (Span 8 Desktop, Span 12 Mobile) */}
           {/* ======================================================== */}
           <div className="col-span-12 lg:col-span-8 rounded-xl border border-border bg-card p-6 sm:p-8 shadow-flat flex flex-col justify-between relative overflow-hidden group">
-
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {/* Avatar Initials with online ring */}
                   <div className="relative flex size-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary font-bold text-xl uppercase tracking-wider">
                     {portfolio.username.slice(0, 2)}
-                    <span className="absolute -bottom-1 -right-1 size-3.5 rounded-full border-2 border-background bg-emerald-500" />
+                    <span className="absolute -bottom-1 -right-1 size-3.5 rounded-full border-2 border-background bg-success" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -110,7 +128,7 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                         {portfolio.username}
                       </h1>
                       <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs py-0.5">
-                        <ShieldCheck className="size-3" /> Verified Talent
+                        <ShieldCheck className="size-3" /> Evidence-backed
                       </Badge>
                     </div>
                     {location && (
@@ -166,7 +184,9 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                   {headline || "Full-Stack Engineer & AI Systems Developer"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-                  Evidence-backed talent profile on TRACE. Every score and skill attribution is corroborated by static analysis, commit velocity, and verified assessments.
+                  Talent profile on TRACE. The score is computed from GitHub
+                  activity, LeetCode, assessments and credentials, and each part
+                  links to the evidence behind it.
                 </p>
               </div>
             </div>
@@ -175,7 +195,7 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
             <div className="pt-6 mt-6 border-t border-border/60 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               {github_stats && (
                 <div className="flex items-center gap-1.5">
-                  <Flame className="size-3.5 text-amber-500" />
+                  <Flame className="size-3.5 text-warning" />
                   <span>
                     <strong className="text-foreground font-mono font-semibold">
                       {github_stats.longest_streak}
@@ -197,7 +217,7 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
               )}
               {leetcode_stats && (
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5 text-emerald-500" />
+                  <CheckCircle2 className="size-3.5 text-success" />
                   <span>
                     <strong className="text-foreground font-mono font-semibold">
                       {leetcode_stats.total_solved}
@@ -218,7 +238,7 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Talent Intelligence
                 </span>
-                <Badge variant="outline" className="font-mono text-[10px]">
+                <Badge variant="outline" className="font-mono text-xs">
                   Registry v2.0
                 </Badge>
               </div>
@@ -241,19 +261,30 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Corroborated composite score across code complexity, problem solving, and architecture consistency.
+                  Weighted composite of ten sub-scores. Missing signals are left
+                  out and their weight redistributed, never counted as zero.
                 </p>
               </div>
             </div>
 
             <div className="mt-6 rounded-xl bg-muted/40 p-3 border border-border/60 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Verification Engine:</span>
-                <span className="font-medium text-foreground">Multi-Signal AST</span>
+                <span className="text-muted-foreground">
+                  Signals with evidence:
+                </span>
+                <span className="font-medium text-foreground">
+                  {available !== null && expected
+                    ? `${available} of ${expected}`
+                    : "Not scored yet"}
+                </span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Evidence Confidence:</span>
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">High (Corroborated)</span>
+                <span className="text-muted-foreground">
+                  Evidence Confidence:
+                </span>
+                <span className={`font-medium ${confidence.className}`}>
+                  {confidence.label}
+                </span>
               </div>
             </div>
           </div>
@@ -270,18 +301,28 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                     Engineering Activity & Consistency
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Observable commit activity and contribution cadence across public repositories
+                    Observable commit activity and contribution cadence across
+                    public repositories
                   </p>
                 </div>
                 <div className="flex items-center gap-4 text-xs">
                   <span className="text-muted-foreground">
-                    Total: <strong className="text-foreground font-mono">{github_stats.total_contributions}</strong>
+                    Total:{" "}
+                    <strong className="text-foreground font-mono">
+                      {github_stats.total_contributions}
+                    </strong>
                   </span>
                   <span className="text-muted-foreground">
-                    Current Streak: <strong className="text-foreground font-mono">{github_stats.current_streak} days</strong>
+                    Current Streak:{" "}
+                    <strong className="text-foreground font-mono">
+                      {github_stats.current_streak} days
+                    </strong>
                   </span>
                   <span className="text-muted-foreground">
-                    Longest Streak: <strong className="text-foreground font-mono">{github_stats.longest_streak} days</strong>
+                    Longest Streak:{" "}
+                    <strong className="text-foreground font-mono">
+                      {github_stats.longest_streak} days
+                    </strong>
                   </span>
                 </div>
               </div>
@@ -303,7 +344,8 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                   Featured Repositories & Proof of Work
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Production codebases analyzed for correctness, architecture, and maintainability
+                  Production codebases analyzed for correctness, architecture,
+                  and maintainability
                 </p>
               </div>
               <Badge variant="outline" className="text-xs font-mono">
@@ -314,8 +356,11 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
             {topProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {topProjects.map((proj) => {
-                  const repoName = proj.repo_full_name.split("/")[1] || proj.repo_full_name;
-                  const languages = proj.languages ? Object.keys(proj.languages) : [];
+                  const repoName =
+                    proj.repo_full_name.split("/")[1] || proj.repo_full_name;
+                  const languages = proj.languages
+                    ? Object.keys(proj.languages)
+                    : [];
                   const primaryLanguage = languages[0];
 
                   return (
@@ -335,17 +380,17 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                             <ExternalLink className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </Link>
                           {primaryLanguage && (
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/60">
+                            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/60">
                               {primaryLanguage}
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                          {proj.description || "Active production codebase with verified AST analysis and commit history."}
+                          {proj.description || "No description on GitHub."}
                         </p>
                       </div>
 
-                      <div className="pt-3 mt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="pt-3 mt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
                         <div className="flex items-center gap-3">
                           <span className="flex items-center gap-1">
                             <Star className="size-3" /> {proj.stars || 0}
@@ -354,8 +399,8 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                             <GitBranch className="size-3" /> {proj.forks || 0}
                           </span>
                         </div>
-                        <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
-                          Verified
+                        <span className="font-mono text-xs text-muted-foreground">
+                          From GitHub
                         </span>
                       </div>
                     </div>
@@ -379,7 +424,8 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                 Technical Stack & Languages
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                AST-analyzed syntax frequency across candidate repositories
+                Share of code by language across public repositories, from
+                GitHub
               </p>
             </div>
 
@@ -388,16 +434,24 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                 <LanguageChart projects={projects} />
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground italic">No languages detected yet.</p>
+              <p className="text-xs text-muted-foreground italic">
+                No languages detected yet.
+              </p>
             )}
 
             {/* Skills Pills */}
             {skills && skills.length > 0 && (
               <div className="pt-3 border-t border-border/60">
-                <p className="text-xs font-medium text-foreground mb-2">Corroborated Competencies:</p>
+                <p className="text-xs font-medium text-foreground mb-2">
+                  Corroborated Competencies:
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {skills.slice(0, 10).map((s, i) => (
-                    <Badge key={i} variant="secondary" className="text-xs py-0.5">
+                    <Badge
+                      key={i}
+                      variant="secondary"
+                      className="text-xs py-0.5"
+                    >
                       {s.name}
                     </Badge>
                   ))}
@@ -414,7 +468,7 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-heading font-semibold text-foreground flex items-center gap-2">
-                    <Terminal className="size-4 text-amber-500" />
+                    <Terminal className="size-4 text-warning" />
                     Problem Solving & Algorithms
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -429,19 +483,19 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl bg-muted/40 p-3 border border-border/60 text-center">
                   <p className="text-xs text-muted-foreground">Easy</p>
-                  <p className="font-mono text-xl font-bold text-emerald-500 mt-1">
+                  <p className="font-mono text-xl font-bold text-success mt-1">
                     {leetcode_stats.easy_solved}
                   </p>
                 </div>
                 <div className="rounded-xl bg-muted/40 p-3 border border-border/60 text-center">
                   <p className="text-xs text-muted-foreground">Medium</p>
-                  <p className="font-mono text-xl font-bold text-amber-500 mt-1">
+                  <p className="font-mono text-xl font-bold text-warning mt-1">
                     {leetcode_stats.medium_solved}
                   </p>
                 </div>
                 <div className="rounded-xl bg-muted/40 p-3 border border-border/60 text-center">
                   <p className="text-xs text-muted-foreground">Hard</p>
-                  <p className="font-mono text-xl font-bold text-rose-500 mt-1">
+                  <p className="font-mono text-xl font-bold text-destructive mt-1">
                     {leetcode_stats.hard_solved}
                   </p>
                 </div>
@@ -488,11 +542,12 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-heading font-semibold text-foreground flex items-center gap-2">
-                    <Trophy className="size-4 text-amber-500" />
+                    <Trophy className="size-4 text-warning" />
                     Verified Credentials & Competency Badges
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Skills corroborated by two or more independent signal sources
+                    Skills corroborated by two or more independent signal
+                    sources
                   </p>
                 </div>
                 <Badge variant="outline" className="text-xs">
@@ -504,12 +559,14 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                 {badges.map((b) => (
                   <div
                     key={b.id}
-                    className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 flex items-start gap-3"
+                    className="rounded-xl border border-success/20 bg-success/5 p-3 flex items-start gap-3"
                   >
-                    <CheckCircle2 className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="size-4 text-success shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-foreground">{b.skill_name}</p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs font-semibold text-foreground">
+                        {b.skill_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
                         Corroborated via {b.corroboration_sources.join(", ")}
                       </p>
                     </div>
@@ -522,7 +579,7 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
           {/* ======================================================== */}
           {/* TILE 9: Professional Experience & Education (Span 12)    */}
           {/* ======================================================== */}
-          {(experience?.length || education?.length) ? (
+          {experience?.length || education?.length ? (
             <div className="col-span-12 rounded-xl border border-border bg-card p-6 shadow-flat space-y-6">
               <h2 className="text-base font-heading font-semibold text-foreground flex items-center gap-2">
                 <GraduationCap className="size-4 text-primary" />
@@ -538,11 +595,18 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                     <div className="space-y-3">
                       {experience.map((entry, i) => {
                         const title = entry.title ? String(entry.title) : "";
-                        const company = entry.company ? String(entry.company) : "";
-                        const description = entry.description ? String(entry.description) : "";
+                        const company = entry.company
+                          ? String(entry.company)
+                          : "";
+                        const description = entry.description
+                          ? String(entry.description)
+                          : "";
 
                         return (
-                          <div key={i} className="rounded-lg border border-border/60 p-3 bg-muted/20 space-y-1">
+                          <div
+                            key={i}
+                            className="rounded-lg border border-border/60 p-3 bg-muted/20 space-y-1"
+                          >
                             <p className="text-xs font-semibold text-foreground">
                               {title}
                               {company ? ` • ${company}` : ""}
@@ -566,11 +630,16 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
                     </h3>
                     <div className="space-y-3">
                       {education.map((entry, i) => {
-                        const institution = entry.institution ? String(entry.institution) : "";
+                        const institution = entry.institution
+                          ? String(entry.institution)
+                          : "";
                         const degree = entry.degree ? String(entry.degree) : "";
 
                         return (
-                          <div key={i} className="rounded-lg border border-border/60 p-3 bg-muted/20 space-y-1">
+                          <div
+                            key={i}
+                            className="rounded-lg border border-border/60 p-3 bg-muted/20 space-y-1"
+                          >
                             <p className="text-xs font-semibold text-foreground">
                               {institution}
                             </p>

@@ -14,7 +14,7 @@ export function Page({ children, width = "workspace", className }: PageProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full px-4 py-6 md:px-8 md:py-8",
+        "mx-auto w-full px-4 py-5 md:px-6 md:py-6",
         width === "workspace" && "max-w-workspace",
         width === "reading" && "max-w-reading",
         className,
@@ -45,7 +45,7 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <header className={cn("mb-6 flex flex-col gap-3", className)}>
+    <header className={cn("mb-5 flex flex-col gap-3", className)}>
       {breadcrumb}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">

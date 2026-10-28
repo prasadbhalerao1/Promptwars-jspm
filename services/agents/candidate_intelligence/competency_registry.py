@@ -275,6 +275,28 @@ COMPETENCY_REGISTRY: dict[str, CompetencyDefinition] = {
             5: "Major Champion: Winner of national or international flagship hackathon.",
         },
     ),
+    "verified_credentials": CompetencyDefinition(
+        id="verified_credentials",
+        name="Verified Credentials",
+        version="v2.0",
+        definition="Certificates and resume history, weighted by how much of each has been independently verified.",
+        applicable_job_families=["Software Engineering", "Product Engineer", "Full Stack"],
+        observable_indicators=[
+            "Certificates verified against a trusted issuer",
+            "Resume skills corroborated by GitHub activity or a certificate",
+        ],
+        permitted_sources=["verified_certificates", "resume", "github_analysis"],
+        explicit_exclusions=[
+            "Resume claims alone cannot carry this score; unverified certificates earn little until reviewed.",
+        ],
+        rubric_anchors={
+            1: "Self-reported: resume claims only, nothing corroborated.",
+            2: "Partly corroborated: some resume skills backed by GitHub activity.",
+            3: "Certified: at least one certificate pending review, or most skills corroborated.",
+            4: "Verified: one verified certificate plus corroborated skills.",
+            5: "Strongly verified: multiple verified certificates and a corroborated resume.",
+        },
+    ),
 }
 
 

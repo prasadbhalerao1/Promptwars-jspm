@@ -116,7 +116,7 @@ export function CareerGuidance() {
   }, [getToken]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-5">
       <Card>
         {/* Titled "Career Guidance", which now restated the page header directly
             above it. The card's actual job is the target-role control. */}
@@ -172,112 +172,124 @@ export function CareerGuidance() {
 
       {guidance && (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading">
-                Skill Gaps{" "}
-                {guidance.target_role ? `- ${guidance.target_role}` : ""}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {guidance.skill_gaps.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No significant gaps found for this role - your skill set
-                  already covers it well.
-                </p>
-              ) : (
-                <ol className="space-y-2">
-                  {guidance.skill_gaps.map((gap) => (
-                    <li
-                      key={gap.skill}
-                      className="flex items-center justify-between gap-4 text-sm"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Badge variant="outline">#{gap.priority}</Badge>
-                        {gap.skill}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        match {(gap.similarity * 100).toFixed(0)}%
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading">Career Roadmap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RoadmapTimeline stages={guidance.roadmap.stages} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading">
-                Recommended Courses
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {guidance.recommended_courses.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No matching courses for your current gaps.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {guidance.recommended_courses.map((course) => (
-                    <li key={course.id} className="text-sm">
-                      <a
-                        href={course.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-primary hover:underline"
+          <div className="grid grid-cols-1 items-start gap-4 md:gap-5 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading">
+                  Skill Gaps{" "}
+                  {guidance.target_role ? `- ${guidance.target_role}` : ""}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {guidance.skill_gaps.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No significant gaps found for this role - your skill set
+                    already covers it well.
+                  </p>
+                ) : (
+                  <ol className="space-y-2">
+                    {guidance.skill_gaps.map((gap) => (
+                      <li
+                        key={gap.skill}
+                        className="flex items-center justify-between gap-4 text-sm"
                       >
-                        {course.title}
-                      </a>{" "}
-                      <span className="text-xs text-muted-foreground">
-                        {course.provider}
-                        {course.is_free ? " · free" : ""}
-                        {course.estimated_hours
-                          ? ` · ~${course.estimated_hours}h`
-                          : ""}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+                        <span className="flex items-center gap-2">
+                          <Badge variant="outline">#{gap.priority}</Badge>
+                          {gap.skill}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                          <span className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted sm:block">
+                            <span
+                              className="block h-full rounded-full bg-primary"
+                              style={{
+                                width: `${Math.round(gap.similarity * 100)}%`,
+                              }}
+                            />
+                          </span>
+                          match {(gap.similarity * 100).toFixed(0)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading">Salary Estimate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {guidance.salary_estimate_low !== null &&
-              guidance.salary_estimate_high !== null ? (
-                <>
-                  <SalaryRangeChart
-                    low={guidance.salary_estimate_low}
-                    high={guidance.salary_estimate_high}
-                  />
-                  {guidance.salary_rationale && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {guidance.salary_rationale}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {guidance.salary_rationale ??
-                    "Salary estimate not available yet."}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading">Career Roadmap</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RoadmapTimeline stages={guidance.roadmap.stages} />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 items-start gap-4 md:gap-5 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading">
+                  Recommended Courses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {guidance.recommended_courses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No matching courses for your current gaps.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {guidance.recommended_courses.map((course) => (
+                      <li key={course.id} className="text-sm">
+                        <a
+                          href={course.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {course.title}
+                        </a>{" "}
+                        <span className="text-xs text-muted-foreground">
+                          {course.provider}
+                          {course.is_free ? " · free" : ""}
+                          {course.estimated_hours
+                            ? ` · ~${course.estimated_hours}h`
+                            : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading">Salary Estimate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {guidance.salary_estimate_low !== null &&
+                guidance.salary_estimate_high !== null ? (
+                  <>
+                    <SalaryRangeChart
+                      low={guidance.salary_estimate_low}
+                      high={guidance.salary_estimate_high}
+                    />
+                    {guidance.salary_rationale && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {guidance.salary_rationale}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {guidance.salary_rationale ??
+                      "Salary estimate not available yet."}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
     </div>

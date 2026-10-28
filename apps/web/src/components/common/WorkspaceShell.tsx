@@ -82,7 +82,7 @@ export function WorkspaceShell({ role, children }: WorkspaceShellProps) {
 
   return (
     <div className="flex flex-1">
-      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 flex-col gap-4 overflow-y-auto bg-sidebar px-3 py-5 shadow-flat md:flex">
+      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 flex-col gap-4 overflow-y-auto bg-sidebar px-3 py-5 shadow-flat lg:flex">
         {navRole ? (
           <>
             <div className="flex items-center justify-between px-2">

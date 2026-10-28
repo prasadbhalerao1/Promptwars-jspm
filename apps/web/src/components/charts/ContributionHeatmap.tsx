@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 interface ContributionHeatmapProps {
   /** date (YYYY-MM-DD) -> contribution/submission count */
@@ -75,42 +74,49 @@ export function ContributionHeatmap({ days }: ContributionHeatmapProps) {
     return { weeks: weeksArr, max: maxCount, monthLabels: labels };
   }, [days]);
 
+  // Weeks are grid columns that stretch to the card width; the 10px floor keeps cells
+  // legible on a phone, where the grid scrolls sideways instead of shrinking further.
+  // On a narrow screen the grid overflows; start scrolled to the most recent weeks,
+  // which are the ones worth seeing first, rather than to last year.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [weeks]);
+
+  const columns = {
+    gridTemplateColumns: `repeat(${weeks.length}, minmax(10px, 1fr))`,
+  };
+
   return (
-    // The scrollbar-* utilities here needed a Tailwind plugin the project doesn't
-    // install, so they never applied. Dropped rather than adding a dependency to
-    // restyle a scrollbar.
-    <div className="w-full overflow-x-auto">
-      <div
-        className="relative mb-2 h-4 select-none"
-        style={{ width: weeks.length * 14 }}
-      >
-        {monthLabels.map(({ weekIndex, label }) => (
-          <span
-            key={weekIndex}
-            className="absolute text-meta font-bold text-muted-foreground uppercase tracking-wider font-mono"
-            style={{ left: weekIndex * 14 }}
-          >
-            {label}
-          </span>
-        ))}
+    <div ref={scrollerRef} className="w-full overflow-x-auto">
+      <div style={{ minWidth: weeks.length * 13 }}>
+        <div className="mb-1.5 grid gap-[3px] select-none" style={columns}>
+          {monthLabels.map(({ weekIndex, label }) => (
+            <span
+              key={weekIndex}
+              className="whitespace-nowrap text-meta font-semibold uppercase tracking-wider text-muted-foreground font-mono"
+              style={{ gridColumnStart: weekIndex + 1 }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="grid gap-[3px]" style={columns}>
+          {weeks.map((week, wi) => (
+            <div key={wi} className="grid grid-rows-7 gap-[3px]">
+              {week.map((day) => (
+                <div
+                  key={day.date}
+                  title={`${day.count} contribution${day.count === 1 ? "" : "s"} on ${day.date}`}
+                  className={`aspect-square w-full rounded-[2px] ${LEVEL_CLASSNAMES[levelFor(day.count, max)]}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="flex gap-[3px]" style={{ width: weeks.length * 14 }}>
-        {weeks.map((week, wi) => (
-          <div key={wi} className="flex flex-col gap-[3px]">
-            {week.map((day, di) => (
-              <motion.div
-                key={day.date}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.15, delay: (wi * 7 + di) * 0.0008 }}
-                title={`${day.count} contribution${day.count === 1 ? "" : "s"} on ${day.date}`}
-                className={`h-[11px] w-[11px] rounded-[2px] ${LEVEL_CLASSNAMES[levelFor(day.count, max)]}`}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-end gap-1.5 text-meta font-bold text-muted-foreground uppercase tracking-wider font-mono select-none">
+      <div className="mt-3 flex items-center justify-end gap-1.5 text-meta font-semibold uppercase tracking-wider text-muted-foreground font-mono select-none">
         <span>Less</span>
         {LEVEL_CLASSNAMES.map((cls, idx) => (
           <div key={idx} className={`h-[10px] w-[10px] rounded-[2px] ${cls}`} />

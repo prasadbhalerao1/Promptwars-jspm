@@ -28,6 +28,7 @@ const AXIS_LABELS: Record<string, string> = {
   leadership: "Leadership",
   open_source_contributions: "Open source",
   hackathon_performance: "Hackathons",
+  verified_credentials: "Credentials",
 };
 
 export function ScoreRadarChart({
@@ -51,7 +52,7 @@ export function ScoreRadarChart({
     }));
 
   return (
-    <div className="h-80 w-full">
+    <div className="h-64 w-full sm:h-72">
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart
           data={data}

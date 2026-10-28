@@ -371,6 +371,17 @@ async def _run_ingestion_and_persist(
 
     hackathon_self_reported = profile.hackathon_experience or []
 
+    cert_rows = await db.execute(select(Certification).where(Certification.candidate_id == profile.id))
+    certifications = [
+        {
+            "title": c.title,
+            "credential_id": c.credential_id,
+            "verification_status": c.verification_status,
+            "ocr_confidence": c.ocr_confidence,
+        }
+        for c in cert_rows.scalars().all()
+    ]
+
     initial_state: CandidateProfileState = {
         "candidate_id": str(profile.id),
         "user_id": str(profile.user_id),
@@ -401,6 +412,7 @@ async def _run_ingestion_and_persist(
         "hackathon_platform_results": hackathon_platform_results,
         "hackathon_self_reported": hackathon_self_reported,
         "leetcode_stats": profile.leetcode_stats,
+        "certifications": certifications,
         "sub_scores": {},
         "overall_score": None,
         "renormalized_subscores": [],
@@ -485,6 +497,7 @@ async def _run_ingestion_and_persist(
             leadership=sub_scores["leadership"].value,
             open_source_contributions=sub_scores["open_source_contributions"].value,
             hackathon_performance=sub_scores["hackathon_performance"].value,
+            verified_credentials=sub_scores["verified_credentials"].value,
             overall=result_state["overall_score"],
             renormalized_subscores=result_state["renormalized_subscores"],
             confidence_available_signals=confidence.available_signals if confidence else None,

@@ -13,6 +13,7 @@ SUB_SCORE_NAMES = (
     "leadership",
     "open_source_contributions",
     "hackathon_performance",
+    "verified_credentials",
 )
 
 
@@ -244,6 +245,9 @@ class PublicPortfolioResponse(BaseModel):
     projects: list[PublicPortfolioProject]
     badges: list[BadgeResponse]
     overall_score: float | None
+    # Evidence Confidence for that score: signals with evidence / signals expected.
+    confidence_available_signals: int | None = None
+    confidence_expected_signals: int | None = None
     # Codolio-style split: Development Stats (GitHub calendar/streak/languages) and
     # Problem Solving Stats (LeetCode). Both are cached snapshots (candidate.github_stats /
     # .leetcode_stats), never fetched live on a public page view.

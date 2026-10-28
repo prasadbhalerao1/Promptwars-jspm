@@ -131,6 +131,7 @@ async def _build_candidate_pool(db: AsyncSession, *, use_cache: bool = True) -> 
                 "leadership": s.leadership,
                 "open_source_contributions": s.open_source_contributions,
                 "hackathon_performance": s.hackathon_performance,
+                "verified_credentials": s.verified_credentials,
             }
 
     badges_result = await db.execute(select(Badge).where(Badge.candidate_id.in_(candidate_ids)))

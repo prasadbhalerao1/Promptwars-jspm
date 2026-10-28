@@ -37,19 +37,19 @@ export function StatsGrid({
         label="Current Streak"
         value={`${stats.current_streak}d`}
         icon={Flame}
-        iconClassName="text-amber-500"
+        iconClassName="text-warning"
       />
       <StatCard
         label="Stars Earned"
         value={summary?.total_stars ?? 0}
         icon={Star}
-        iconClassName="text-amber-500"
+        iconClassName="text-warning"
       />
       <StatCard
         label="Pull Requests"
         value={summary?.total_prs ?? 0}
         icon={GitPullRequest}
-        iconClassName="text-emerald-500"
+        iconClassName="text-success"
       />
       <StatCard
         label="Public Repos"

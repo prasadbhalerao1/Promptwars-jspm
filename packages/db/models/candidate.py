@@ -136,6 +136,7 @@ class TalentScore(Base):
     technical_consistency: Mapped[float | None] = mapped_column(Float)
     open_source_contributions: Mapped[float | None] = mapped_column(Float)
     hackathon_performance: Mapped[float | None] = mapped_column(Float)
+    verified_credentials: Mapped[float | None] = mapped_column(Float)
     overall: Mapped[float | None] = mapped_column(Float)
     # Which sub-scores were N/A and had their weight re-normalized away (doc 08 §1.1) —
     # part of the provenance trail, never a silent adjustment.

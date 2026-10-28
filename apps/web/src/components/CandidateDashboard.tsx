@@ -231,7 +231,9 @@ export function CandidateDashboard() {
       if (!token) throw new Error("No session token");
       const updated = await connectGithubUsername(token, githubInput.trim());
       setProfile(updated);
-      toast.success("GitHub profile connected! Analyzing repositories in background...");
+      toast.success(
+        "GitHub profile connected! Analyzing repositories in background...",
+      );
       setGithubInput("");
       coreResource.retry();
       githubResource.retry();
@@ -297,7 +299,8 @@ export function CandidateDashboard() {
   const devStatsError = profileResource.error ?? githubResource.error;
 
   const hasLeetcode = Boolean(profile?.leetcode_stats?.submission_calendar);
-  const [activitySource, setActivitySource] = useState<ActivitySource>("combined");
+  const [activitySource, setActivitySource] =
+    useState<ActivitySource>("combined");
   const source: ActivitySource = hasLeetcode ? activitySource : "github";
 
   const leetcodeDays = useMemo(() => {
@@ -334,12 +337,12 @@ export function CandidateDashboard() {
   }, [source, githubStats, activityDays]);
 
   return (
-    <div className="mx-auto w-full max-w-workspace px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto w-full max-w-workspace px-4 py-5 md:px-6 md:py-6">
       <PageHeader
         title="Your talent profile"
         description="Your Talent Score, the evidence behind it, and the development activity it draws on."
       />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
+      <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-[280px_1fr] lg:items-start">
         {profileResource.loading && !profile ? (
           // Sized to the real ProfileSidebar so the two-column grid is laid out from the
           // first paint and nothing jumps sideways when the profile lands.
@@ -360,13 +363,13 @@ export function CandidateDashboard() {
           />
         ) : null}
 
-        <div className="space-y-6 flex-1 min-w-0">
+        <div className="min-w-0 space-y-4 md:space-y-5">
           {/* The Talent Score leads the page. It is the answer to "how strong am I",
               which is the question that brought the candidate here, and it is computed
               from resume + assessments + interviews - not only from GitHub. It used to
               render inside the GitHub branch below, so a candidate with a real score of
               82.0 but no GitHub connection saw nothing but a Connect button. */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
             {talentResource.loading && !talentResource.data ? (
               <Card>
                 <CardContent className="space-y-3 p-6">
@@ -424,174 +427,194 @@ export function CandidateDashboard() {
               </>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* The evidence behind that score, beside the badges it earned. */}
-          {talentResource.data?.latestScore && (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-start">
-              <EvidenceReceipt score={talentResource.data.latestScore} />
-              <div className="space-y-6">
-                <Section title="Badges">
-                  <BadgeGrid badges={talentResource.data.badges} />
-                </Section>
-                {githubResource.data ? (
+      {/* Full width below the profile band: in the right-hand column these left the
+          sidebar's column empty for the rest of the page. */}
+      <div className="mt-4 space-y-4 md:mt-5 md:space-y-5">
+        {/* The evidence behind that score, beside the badges it earned. */}
+        {talentResource.data?.latestScore && (
+          <div className="grid grid-cols-1 items-start gap-4 md:gap-5 lg:grid-cols-[3fr_2fr]">
+            <EvidenceReceipt score={talentResource.data.latestScore} />
+            <div className="space-y-4 md:space-y-5">
+              <Section title="Badges">
+                <BadgeGrid badges={talentResource.data.badges} />
+              </Section>
+              {githubResource.data ? (
+                <>
                   <Section title="Skills Matrix">
                     <SkillsSection projects={githubResource.data.projects} />
                   </Section>
-                ) : null}
-              </div>
+                  {/* Beside the evidence list rather than in a row of its own, so this
+                        column is not left half empty next to the taller receipt. */}
+                  <Section title="Languages">
+                    <LanguageChart projects={githubResource.data.projects} />
+                  </Section>
+                </>
+              ) : null}
             </div>
-          )}
+          </div>
+        )}
 
-          {devStatsLoading && !githubResource.data ? (
-            // Matches the real Development Stats block (stat cards + two charts) so this
-            // section reserves its final height instead of collapsing and pushing
-            // everything below it down when the data arrives.
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <CardSkeleton className="h-24" />
-                <CardSkeleton className="h-24" />
-                <CardSkeleton className="h-24" />
-                <CardSkeleton className="h-24" />
-              </div>
-              <CardSkeleton className="h-32" />
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <CardSkeleton className="h-56" />
-                <CardSkeleton className="h-56" />
-              </div>
+        {devStatsLoading && !githubResource.data ? (
+          // Matches the real Development Stats block (stat cards + two charts) so this
+          // section reserves its final height instead of collapsing and pushing
+          // everything below it down when the data arrives.
+          <div className="space-y-4 md:space-y-5">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <CardSkeleton className="h-24" />
+              <CardSkeleton className="h-24" />
+              <CardSkeleton className="h-24" />
+              <CardSkeleton className="h-24" />
             </div>
-          ) : devStatsError && !githubResource.data ? (
-            <SectionError
-              message={devStatsError}
-              onRetry={() => {
-                profileResource.retry();
-                githubResource.retry();
-              }}
-              retrying={devStatsLoading}
-            />
-          ) : !githubUsername || !githubStats || !githubResource.data ? (
-            <Card className="border-border bg-card text-foreground shadow-flat">
-              <CardContent className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-                <p className="text-sm text-muted-foreground font-medium max-w-md">
-                  Connect GitHub to unlock Development Stats, achievements, and
-                  repository analytics. Enter any GitHub username to analyze public repos, or authenticate via OAuth.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center gap-2 w-full max-w-md justify-center">
-                  <Input
-                    value={githubInput}
-                    onChange={(e) => setGithubInput(e.target.value)}
-                    placeholder="GitHub username (e.g. torvalds)"
-                    className="max-w-64"
-                  />
-                  <Button onClick={handleConnectUsername} disabled={busyConnect || !githubInput.trim()}>
-                    {busyConnect ? "Syncing..." : "Sync Profile"}
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
-                  <span>or</span>
-                  <button
-                    type="button"
-                    onClick={handleConnectGithub}
-                    disabled={busyConnect}
-                    className="text-primary hover:underline font-medium"
+            <CardSkeleton className="h-32" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+              <CardSkeleton className="h-56" />
+              <CardSkeleton className="h-56" />
+            </div>
+          </div>
+        ) : devStatsError && !githubResource.data ? (
+          <SectionError
+            message={devStatsError}
+            onRetry={() => {
+              profileResource.retry();
+              githubResource.retry();
+            }}
+            retrying={devStatsLoading}
+          />
+        ) : !githubUsername || !githubStats || !githubResource.data ? (
+          <Card className="border-border bg-card text-foreground shadow-flat">
+            <CardContent className="p-8 flex flex-col items-center justify-center text-center space-y-4">
+              <p className="text-sm text-muted-foreground font-medium max-w-md">
+                Connect GitHub to unlock Development Stats, achievements, and
+                repository analytics. Enter any GitHub username to analyze
+                public repos, or authenticate via OAuth.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full max-w-md justify-center">
+                <Input
+                  value={githubInput}
+                  onChange={(e) => setGithubInput(e.target.value)}
+                  placeholder="GitHub username (e.g. torvalds)"
+                  className="max-w-64"
+                />
+                <Button
+                  onClick={handleConnectUsername}
+                  disabled={busyConnect || !githubInput.trim()}
+                >
+                  {busyConnect ? "Syncing..." : "Sync Profile"}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                <span>or</span>
+                <button
+                  type="button"
+                  onClick={handleConnectGithub}
+                  disabled={busyConnect}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Authenticate with GitHub OAuth
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Stats Grid */}
+            <StatsGrid stats={githubStats} summary={githubResource.data} />
+
+            {/* Row 1: Contribution Activity (Full-width) */}
+            <Section
+              title={`Contribution Activity (${ACTIVITY_SOURCE_LABELS[source]})`}
+              action={
+                hasLeetcode ? (
+                  <Select
+                    value={source}
+                    onValueChange={(value) => {
+                      if (value) setActivitySource(value as ActivitySource);
+                    }}
                   >
-                    Authenticate with GitHub OAuth
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Stats Grid */}
-              <StatsGrid stats={githubStats} summary={githubResource.data} />
-
-              {/* Row 1: Contribution Activity (Full-width) */}
-              <Section
-                title={`Contribution Activity (${ACTIVITY_SOURCE_LABELS[source]})`}
-                action={
-                  hasLeetcode ? (
-                    <Select
-                      value={source}
-                      onValueChange={(value) => {
-                        if (value) setActivitySource(value as ActivitySource);
-                      }}
+                    <SelectTrigger
+                      className="w-48"
+                      aria-label="Activity source"
                     >
-                      <SelectTrigger className="w-48" aria-label="Activity source">
-                        <SelectValue>
-                          {(value: ActivitySource) => ACTIVITY_SOURCE_LABELS[value]}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(ACTIVITY_SOURCE_LABELS) as ActivitySource[]).map(
-                          (key) => (
-                            <SelectItem key={key} value={key}>
-                              {ACTIVITY_SOURCE_LABELS[key]}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  ) : null
-                }
-              >
-                <div className="mb-4 flex flex-wrap items-center gap-6 text-meta font-medium text-muted-foreground select-none">
-                  <span>
-                    Total Activity:{" "}
-                    <span className="font-semibold text-foreground">
-                      {activityTotals.total}
-                    </span>
+                      <SelectValue>
+                        {(value: ActivitySource) =>
+                          ACTIVITY_SOURCE_LABELS[value]
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(
+                        Object.keys(ACTIVITY_SOURCE_LABELS) as ActivitySource[]
+                      ).map((key) => (
+                        <SelectItem key={key} value={key}>
+                          {ACTIVITY_SOURCE_LABELS[key]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null
+              }
+            >
+              <div className="mb-4 flex flex-wrap items-center gap-6 text-meta font-medium text-muted-foreground select-none">
+                <span>
+                  Total Activity:{" "}
+                  <span className="font-semibold text-foreground">
+                    {activityTotals.total}
                   </span>
-                  <span>
-                    Max Streak:{" "}
-                    <span className="font-semibold text-foreground">
-                      {activityTotals.longest}d
-                    </span>
+                </span>
+                <span>
+                  Max Streak:{" "}
+                  <span className="font-semibold text-foreground">
+                    {activityTotals.longest}d
                   </span>
-                  <span>
-                    Current Streak:{" "}
-                    <span className="font-semibold text-foreground">
-                      {activityTotals.current}d
-                    </span>
+                </span>
+                <span>
+                  Current Streak:{" "}
+                  <span className="font-semibold text-foreground">
+                    {activityTotals.current}d
                   </span>
-                </div>
-                <ContributionHeatmap days={activityDays} />
-              </Section>
-
-              {/* Row 2: Languages and Commit Activity (Side by Side) */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <Section title="Languages">
-                  <LanguageChart projects={githubResource.data.projects} />
-                </Section>
-                <Section title="Commit Activity (weekly)">
-                  <CommitActivityChart
-                    weeklyCounts={githubStats.commit_activity_weekly}
-                  />
-                </Section>
+                </span>
               </div>
+              <ContributionHeatmap days={activityDays} />
+            </Section>
 
-              {/* Row 6: Repository Analytics (Full Width) */}
-              <Section title="Repository Analytics">
-                <RepositoryGrid projects={githubResource.data.projects} />
+            {/* Languages sit beside the evidence receipt above when a score exists. */}
+            {!talentResource.data?.latestScore && (
+              <Section title="Languages">
+                <LanguageChart projects={githubResource.data.projects} />
               </Section>
+            )}
+            <Section title="Commit Activity (weekly)">
+              <CommitActivityChart
+                weeklyCounts={githubStats.commit_activity_weekly}
+              />
+            </Section>
 
-              {/* Row 7: Problem Solving Stats (Full Width) */}
-              {profile && (
-                <ProblemSolvingStats
-                  leetcodeUsername={profile.leetcode_username}
-                  leetcodeStats={profile.leetcode_stats}
-                />
-              )}
+            {/* Row 6: Repository Analytics (Full Width) */}
+            <Section title="Repository Analytics">
+              <RepositoryGrid projects={githubResource.data.projects} />
+            </Section>
 
-              {/* Row 8: Achievements Portfolio (Full Width) */}
-              <Section title="Achievements Portfolio">
-                <AchievementsGrid
-                  githubStats={githubStats}
-                  githubSummary={githubResource.data}
-                  projects={githubResource.data.projects}
-                />
-              </Section>
-            </>
-          )}
-        </div>
+            {/* Row 7: Problem Solving Stats (Full Width) */}
+            {profile && (
+              <ProblemSolvingStats
+                leetcodeUsername={profile.leetcode_username}
+                leetcodeStats={profile.leetcode_stats}
+              />
+            )}
+
+            {/* Row 8: Achievements Portfolio (Full Width) */}
+            <Section title="Achievements Portfolio">
+              <AchievementsGrid
+                githubStats={githubStats}
+                githubSummary={githubResource.data}
+                projects={githubResource.data.projects}
+              />
+            </Section>
+          </>
+        )}
       </div>
     </div>
   );

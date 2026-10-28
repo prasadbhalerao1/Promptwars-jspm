@@ -60,7 +60,7 @@
   --text-meta--line-height: 1.35;
 
   /* Content widths */
-  --spacing-workspace: 78rem; /* 1248px  dense workspace */
+  --spacing-workspace: 96rem; /* 1536px  dense workspace */
   --spacing-reading: 45rem; /* 720px   forms and prose */
 
   /* Motion. Two durations in the app; the landing page adds its own longer

@@ -85,6 +85,8 @@ async def get_public_portfolio(
         projects=non_fork_projects[:12],
         badges=badges,
         overall_score=latest_score.overall if latest_score else None,
+        confidence_available_signals=latest_score.confidence_available_signals if latest_score else None,
+        confidence_expected_signals=latest_score.confidence_expected_signals if latest_score else None,
         github_username=profile.github_username,
         leetcode_username=profile.leetcode_username,
         github_stats=profile.github_stats,

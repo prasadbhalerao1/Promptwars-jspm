@@ -32,7 +32,7 @@ export function MobileNav({ role }: { role: WorkspaceRole }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            className="md:hidden"
+            className="lg:hidden"
             aria-label="Open navigation"
           >
             <Menu className="size-4" />

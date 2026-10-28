@@ -46,6 +46,8 @@ class CandidateProfileState(TypedDict):
 
     # LeetCode stats as stored on the profile (tools/leetcode.py's LeetcodeStats as a dict)
     leetcode_stats: Optional[dict]
+    # Certificates already on file: {title, verification_status, ocr_confidence}
+    certifications: Optional[list[dict]]
 
     # Scoring output
     sub_scores: dict[str, SubScore]
