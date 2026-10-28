@@ -181,6 +181,14 @@ export const PRASAD_RESUME: ResumeData = {
 
 const EMPTY_RESUME = PRASAD_RESUME;
 
+/** Profile experience/education entries arrive as loose JSON from résumé parsing, so a
+ * field may be missing or not a string. Reads it as display text, defaulting to "". */
+function text(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
+}
+
 export function AtsResumeBuilder() {
   const { getToken } = useAuth();
   const { me } = useCurrentUser();
@@ -230,28 +238,28 @@ export function AtsResumeBuilder() {
         setData((prev) => {
           const mappedExperience =
             profile.experience && profile.experience.length > 0
-              ? profile.experience.map((exp: any, i: number) => ({
-                  id: exp.id || `exp-prof-${i}`,
-                  company: exp.company || "",
-                  role: exp.role || exp.title || "",
-                  location: exp.location || "",
-                  dates: exp.dates || exp.years || "",
+              ? profile.experience.map((exp, i) => ({
+                  id: text(exp.id) || `exp-prof-${i}`,
+                  company: text(exp.company),
+                  role: text(exp.role) || text(exp.title),
+                  location: text(exp.location),
+                  dates: text(exp.dates) || text(exp.years),
                   bullets: Array.isArray(exp.bullets)
-                    ? exp.bullets
-                    : exp.description
-                      ? [exp.description]
+                    ? exp.bullets.filter((b): b is string => typeof b === "string")
+                    : text(exp.description)
+                      ? [text(exp.description)]
                       : [],
                 }))
               : prev.experience;
 
           const mappedEducation =
             profile.education && profile.education.length > 0
-              ? profile.education.map((edu: any, i: number) => ({
-                  id: edu.id || `edu-prof-${i}`,
-                  institution: edu.institution || "",
-                  degree: edu.degree || "",
-                  dates: edu.dates || edu.year || "",
-                  gpa: edu.gpa || "",
+              ? profile.education.map((edu, i) => ({
+                  id: text(edu.id) || `edu-prof-${i}`,
+                  institution: text(edu.institution),
+                  degree: text(edu.degree),
+                  dates: text(edu.dates) || text(edu.year),
+                  gpa: text(edu.gpa),
                 }))
               : prev.education;
 

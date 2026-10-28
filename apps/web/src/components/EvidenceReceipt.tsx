@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ChevronRight, ExternalLink, HelpCircle, Info, ShieldCheck, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -13,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SUB_SCORE_LABELS, type SubScore, type TalentScoreResponse } from "@/lib/api";
+import { SUB_SCORE_LABELS, type TalentScoreResponse } from "@/lib/api";
 
 const RUBRIC_LEVEL_NAMES: Record<number, string> = {
   1: "Foundational (Level 1)",
@@ -215,7 +214,7 @@ export function EvidenceReceipt({ score }: { score: TalentScoreResponse }) {
                           </span>
                         </div>
                         <p className="text-muted-foreground text-xs italic">
-                          "{prov.excerpt}"
+                          &ldquo;{prov.excerpt}&rdquo;
                         </p>
                       </div>
                     ))}

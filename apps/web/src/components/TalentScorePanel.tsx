@@ -4,15 +4,12 @@ import { Info } from "lucide-react";
 
 import {
   ConfidenceBadge,
-  EvidencePopover,
   confidenceRatio,
 } from "@/components/common/ScoreDisplay";
 import {
   SUB_SCORE_LABELS,
   type TalentScoreResponse,
-  type SubScore,
 } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 /** The Talent Score, with the context that makes it honest.
  *
@@ -36,7 +33,6 @@ export function TalentScorePanel({ score }: { score: TalentScoreResponse }) {
   const entries = Object.entries(score.sub_scores).sort(
     ([, a], [, b]) => (b.value ?? -1) - (a.value ?? -1),
   );
-  const renormalized = new Set(score.renormalized_subscores);
 
   return (
     <section
@@ -107,55 +103,5 @@ export function TalentScorePanel({ score }: { score: TalentScoreResponse }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function SubScoreRow({
-  label,
-  sub,
-  renormalized,
-}: {
-  label: string;
-  sub: SubScore;
-  renormalized: boolean;
-}) {
-  const pending = sub.value === null;
-
-  return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-3 py-2.5 first:pt-0">
-      <div className="min-w-0">
-        <dt className="flex items-center gap-1.5 text-body text-foreground">
-          {label}
-          <EvidencePopover label={label} subScore={sub} />
-          {renormalized ? (
-            <span className="text-meta text-muted-foreground">
-              redistributed
-            </span>
-          ) : null}
-        </dt>
-        {!pending ? (
-          <div
-            aria-hidden
-            className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-surface-sunken"
-          >
-            <div
-              className="h-full rounded-full bg-primary"
-              style={{ width: `${Math.max(0, Math.min(100, sub.value ?? 0))}%` }}
-            />
-          </div>
-        ) : null}
-      </div>
-      <dd
-        className={cn(
-          "text-right",
-          pending
-            ? "text-meta text-muted-foreground"
-            : "font-mono text-body font-medium text-foreground",
-        )}
-        {...(pending ? {} : { "data-numeric": true })}
-      >
-        {pending ? "Not yet computable" : sub.value?.toFixed(0)}
-      </dd>
-    </div>
   );
 }

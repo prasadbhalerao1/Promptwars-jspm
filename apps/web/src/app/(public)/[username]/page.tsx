@@ -6,17 +6,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  Award,
   Calendar,
   CheckCircle2,
   Code2,
-  Compass,
   ExternalLink,
   Flame,
   FolderGit2,
   GitBranch,
   GraduationCap,
-  Mail,
   MapPin,
   ShieldCheck,
   Star,
@@ -24,22 +21,11 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { AchievementsGridWrapper } from "@/components/achievements/AchievementsGridWrapper";
 import { CommitActivityChartLazy } from "@/components/charts/CommitActivityChartLazy";
 import { ContributionHeatmap } from "@/components/charts/ContributionHeatmap";
 import { LanguageChart } from "@/components/charts/LanguageChart";
-import { ProblemSolvingStats } from "@/components/ProblemSolvingStats";
-import { RepositoryGridWrapper } from "@/components/repositories/RepositoryGridWrapper";
-import { SkillsSectionWrapper } from "@/components/skills/SkillsSectionWrapper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { fetchPublicPortfolio } from "@/lib/api";
 import { BACKEND_URL } from "@/lib/env";
 

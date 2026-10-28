@@ -13,7 +13,6 @@ import {
   YAxis,
 } from "recharts";
 
-import { ContributionHeatmap } from "@/components/charts/ContributionHeatmap";
 import { Metric, MetricGrid } from "@/components/common/Metric";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LeetcodeStats } from "@/lib/api";
@@ -94,16 +93,6 @@ export function ProblemSolvingStats({
   leetcodeUsername,
   leetcodeStats,
 }: ProblemSolvingStatsProps) {
-  const calendarDays = useMemo(() => {
-    if (!leetcodeStats) return [];
-    return Object.entries(leetcodeStats.submission_calendar).map(
-      ([unixSeconds, count]) => ({
-        date: new Date(Number(unixSeconds) * 1000).toISOString().slice(0, 10),
-        count,
-      }),
-    );
-  }, [leetcodeStats]);
-
   const difficultyData = useMemo(() => {
     if (!leetcodeStats) return [];
     return [

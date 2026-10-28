@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  CalendarDays,
   Flame,
   FolderGit2,
   GitCommit,
   GitPullRequest,
   Star,
-  Trophy,
   Zap,
 } from "lucide-react";
 

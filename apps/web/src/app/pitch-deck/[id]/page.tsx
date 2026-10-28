@@ -18,7 +18,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Compass,
-  FileText,
   HelpCircle,
   Layers,
   XCircle,
