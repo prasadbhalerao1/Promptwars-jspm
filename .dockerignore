@@ -1,0 +1,20 @@
+# Cloud Build upload for services/api/Dockerfile. Secrets reach Cloud Run as env vars,
+# never through the image.
+.env
+.env.*
+!.env.example
+.git/
+.venv/
+node_modules/
+apps/
+.archive/
+.agents/
+.claude/
+.neon
+dev/
+Documentation/
+Hackathon_Submission.md
+infra/pgdata/
+infra/qdrantdata/
+**/__pycache__/
+.pytest_cache/
