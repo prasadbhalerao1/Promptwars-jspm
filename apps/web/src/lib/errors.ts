@@ -114,6 +114,14 @@ const MESSAGES_BY_CODE: Record<string, string> = {
     "The AI engine is temporarily unavailable. Please try again in a moment.",
   rate_limit_exceeded:
     "You are making requests faster than the limit allows. Please wait a moment.",
+  avatar_busy:
+    "Another avatar interview is running right now. Wait a minute and try again, or switch to the voice and text interview.",
+  avatar_interviews_unavailable:
+    "The video avatar interviewer isn't available right now. You can take the voice and text interview instead.",
+  avatar_transcript_unavailable:
+    "Your answers couldn't be collected from the avatar service yet. Wait a few seconds and press End interview again.",
+  interview_transcript_empty:
+    "No answers were recorded yet, so there is nothing to score. Answer at least one question before ending the interview.",
 };
 
 export function userFacingMessage(error: unknown): string {

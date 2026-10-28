@@ -71,6 +71,7 @@ export const SUB_SCORE_LABELS: Record<string, string> = {
   leadership: "Leadership",
   open_source_contributions: "Open Source Contributions",
   hackathon_performance: "Hackathon Performance",
+  verified_credentials: "Verified Credentials",
 };
 
 /** How much of a Talent Score is backed by real evidence rather than cold-start gaps.
@@ -758,6 +759,8 @@ export interface PublicPortfolioResponse {
   projects: PublicPortfolioProject[];
   badges: BadgeResponse[];
   overall_score: number | null;
+  confidence_available_signals?: number | null;
+  confidence_expected_signals?: number | null;
   github_username: string | null;
   leetcode_username: string | null;
   github_stats: GithubStats | null;
@@ -1522,11 +1525,16 @@ export async function pollSubmissionGrading(
 
 // --- FR-2: AI Interview Agent ---
 
+/** "avatar" runs the interview through a TruGen video avatar; "classic" is the
+ * question-by-question voice/text loop driven by our own interview graph. */
+export type InterviewMode = "classic" | "avatar";
+
 export interface InterviewTurnResponse {
   session_id: string;
   question: string | null;
   topics_remaining: number;
   status: "in_progress" | "completed";
+  mode?: InterviewMode;
 }
 
 export interface TranscriptTurn {
@@ -1657,6 +1665,11 @@ export function startInterview(
     job_id?: string;
     interview_definition_id?: string;
     topic_plan?: string[];
+    /** Practice interviews only: the role the topics were generated from. */
+    role_title?: string;
+    job_description?: string;
+    years_experience?: number;
+    mode?: InterviewMode;
   },
 ): Promise<InterviewTurnResponse> {
   return assessmentJson(`/interview-sessions`, token, {
@@ -1666,6 +1679,10 @@ export function startInterview(
       job_id: body?.job_id ?? null,
       interview_definition_id: body?.interview_definition_id ?? null,
       topic_plan: body?.topic_plan ?? [],
+      role_title: body?.role_title ?? null,
+      job_description: body?.job_description ?? null,
+      years_experience: body?.years_experience ?? null,
+      mode: body?.mode ?? "classic",
     }),
   });
 }
@@ -1674,6 +1691,20 @@ export interface InterviewSessionWithTranscript {
   session_id: string;
   status: "in_progress" | "completed";
   transcript: TranscriptTurn[];
+  mode?: InterviewMode;
+  role_title?: string | null;
+  topics?: string[];
+}
+
+/** Short-lived browser token for the session's TruGen avatar. The API key stays on the
+ * server; this token is handed straight to `@trugen/js-sdk`'s `createClient`. */
+export function getAvatarToken(
+  token: string,
+  sessionId: string,
+): Promise<{ token: string; conversation_id: string }> {
+  return assessmentJson(`/interview-sessions/${sessionId}/avatar-token`, token, {
+    method: "POST",
+  });
 }
 
 export function getInterviewSession(

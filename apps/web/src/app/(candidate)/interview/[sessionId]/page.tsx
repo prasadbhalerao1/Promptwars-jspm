@@ -19,9 +19,11 @@ import {
   getInterviewSession,
   interviewTurn,
   startInterview,
+  type InterviewMode,
   type InterviewReportResponse,
 } from "@/lib/api";
 import { Input } from "@/components/ui/input";
+import { AvatarInterview } from "@/components/interview/AvatarInterview";
 
 interface ChatMessage {
   role: "ai" | "user";
@@ -62,6 +64,9 @@ export default function CandidateInterviewPage() {
   const [awaitingResponse, setAwaitingResponse] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [mode, setMode] = useState<InterviewMode>("classic");
+  const [roleTitle, setRoleTitle] = useState<string | null>(null);
+  const [topics, setTopics] = useState<string[]>([]);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   // Current interim transcript, readable from the `onend` handler (see toggleSpeech).
   const interimTranscriptRef = useRef("");
@@ -117,6 +122,9 @@ export default function CandidateInterviewPage() {
           })),
         );
         setStatus(session.status);
+        setMode(session.mode ?? "classic");
+        setRoleTitle(session.role_title ?? null);
+        setTopics(session.topics ?? []);
         setSessionStarted(true);
       } catch (err) {
         if (!cancelled)
@@ -381,6 +389,29 @@ export default function CandidateInterviewPage() {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  if (mode === "avatar" && sessionId) {
+    return (
+      <Page>
+        <PageHeader
+          title="Interview"
+          description="A live interview with an AI video interviewer. Speak your answers, or type them."
+        />
+        {status === "completed" ? (
+          <p className="text-body text-muted-foreground">
+            This interview has finished. Your report has been shared with the recruiter.
+          </p>
+        ) : (
+          <AvatarInterview
+            sessionId={sessionId}
+            roleTitle={roleTitle}
+            topics={topics}
+            onReport={setReport}
+          />
+        )}
+      </Page>
     );
   }
 

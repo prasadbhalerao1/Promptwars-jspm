@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 ASSESSMENT_TYPES = ("coding", "mcq", "project_analysis")
 
@@ -140,17 +142,35 @@ class InterviewDefinitionAttemptResponse(BaseModel):
     has_report: bool
 
 
+InterviewMode = Literal["classic", "avatar"]
+
+
 class InterviewStartRequest(BaseModel):
     job_id: UUID | None = None
     interview_definition_id: UUID | None = None
     topic_plan: list[str] = []  # empty = auto-derive from candidate profile
+    # Practice interviews have no definition row, so the role context the topics were
+    # generated from travels with the request. Ignored when a definition is given — the
+    # recruiter's published JD is authoritative there.
+    role_title: str | None = Field(default=None, max_length=200)
+    job_description: str | None = Field(default=None, max_length=8000)
+    years_experience: int | None = Field(default=None, ge=0, le=50)
+    mode: InterviewMode = "classic"
 
 
 class InterviewTurnResponse(BaseModel):
     session_id: UUID
-    question: str | None  # None when the interview has concluded (call /end next)
+    # None when the interview has concluded (call /end next), and always None in avatar
+    # mode, where the avatar asks the questions.
+    question: str | None
     topics_remaining: int
     status: str  # in_progress | completed
+    mode: InterviewMode = "classic"
+
+
+class InterviewAvatarTokenResponse(BaseModel):
+    token: str  # short-lived; handed straight to @trugen/js-sdk's createClient
+    conversation_id: str
 
 
 class InterviewAnswerRequest(BaseModel):
@@ -182,6 +202,9 @@ class InterviewSessionWithTranscriptResponse(BaseModel):
     session_id: UUID
     status: str
     transcript: list[TranscriptTurnResponse]
+    mode: InterviewMode = "classic"
+    role_title: str | None = None
+    topics: list[str] = []
 
 
 class InterviewReportResponse(BaseModel):

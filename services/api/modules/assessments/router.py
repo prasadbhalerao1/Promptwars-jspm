@@ -35,6 +35,7 @@ from packages.shared_schemas.assessment import (
     GenerateDefinitionQuestionsRequest,
     GenerateDefinitionQuestionsResponse,
     InterviewAnswerRequest,
+    InterviewAvatarTokenResponse,
     InterviewDefinitionAttemptResponse,
     InterviewDefinitionCreateRequest,
     InterviewDefinitionQuestion,
@@ -56,6 +57,8 @@ from services.agents.assessment.state import ContributionState, DefinitionQuesti
 from services.agents.assessment.tools.llm_review import AssessmentUnavailable
 from services.agents.assessment.tools.interview_llm import generate_definition_questions
 from services.agents.assessment.verification_graph import get_verification_graph
+from services.agents.prompts_loader import load_prompt
+from services.api.core import trugen
 from services.api.core.config import get_settings
 from services.api.common.constants import truncate_error
 from services.api.core.db import async_session, get_db, without_db_connection
@@ -573,6 +576,17 @@ async def start_interview(
         }
     else:
         topic_plan = body.topic_plan or _default_topic_plan(profile)
+        # A practice interview's topics were generated from a role the candidate typed in;
+        # without this the interviewer only saw bare topic names and lost the JD entirely.
+        if body.role_title and body.job_description:
+            job_context = {
+                "role_title": body.role_title,
+                "job_description": body.job_description,
+                "years_experience": body.years_experience,
+            }
+
+    if body.mode == "avatar" and not trugen.trugen_enabled():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="avatar_interviews_unavailable")
 
     # Worst-case interview length is 2 x len(topic_plan) turns (one answer plus at most one
     # follow-up per topic), and every turn costs two serial judgment-tier LLM calls. The
@@ -602,9 +616,24 @@ async def start_interview(
             "per_topic_scores": {},
             "follow_up_count_this_topic": 0,
             "job_context": job_context,
+            "mode": body.mode,
         },
     )
     db.add(session)
+
+    if body.mode == "avatar":
+        # The avatar asks the questions, so there is no first question to generate here.
+        # The TruGen agent is created when the page asks for a token, which keeps a
+        # started-but-abandoned session from leaving an agent behind.
+        await db.commit()
+        return {
+            "session_id": session.id,
+            "question": None,
+            "topics_remaining": len(topic_plan),
+            "status": "in_progress",
+            "mode": "avatar",
+        }
+
     # Commit, not just flush: the graph call below releases this session's connection,
     # which discards any open transaction. A flushed-but-uncommitted InterviewSession
     # would be rolled back and the row lost. Committing here also means the session row
@@ -713,12 +742,107 @@ async def get_interview_session(
         .order_by(InterviewTranscriptTurn.turn_index)
     )
     turns = turns_result.scalars().all()
+    saved = session.state or {}
 
     return {
         "session_id": session.id,
         "status": session.status,
         "transcript": turns,
+        "mode": saved.get("mode", "classic"),
+        "role_title": (saved.get("job_context") or {}).get("role_title"),
+        "topics": saved.get("topic_plan", []),
     }
+
+
+def _avatar_system_prompt(saved: dict, profile: CandidateProfile, max_minutes: int) -> str:
+    job = saved.get("job_context") or {}
+    years = job.get("years_experience")
+    return load_prompt(
+        "assessment",
+        "avatar_interviewer",
+        max_minutes=max_minutes,
+        role_title=job.get("role_title") or "General software engineering",
+        experience_level=f"{years} years" if years is not None else "Not specified; pitch questions at a mid level.",
+        job_description=job.get("job_description") or "No job description provided; stay with the topics.",
+        topic_list="\n".join(f"{i}. {t}" for i, t in enumerate(saved.get("topic_plan", []), start=1)),
+        candidate_background=_candidate_profile_summary(profile),
+    )
+
+
+@router.post("/interview-sessions/{session_id}/avatar-token", response_model=InterviewAvatarTokenResponse)
+async def avatar_session_token(
+    session_id: uuid.UUID,
+    user: User = Depends(require_role("candidate")),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Mint a browser token for the session's TruGen avatar, creating the agent on first use.
+
+    Called again on reconnect: each call opens a new TruGen conversation, and every
+    conversation id is kept so `/end` can stitch the transcript back together.
+    """
+    session, profile = await _session_owned_by(db, session_id, user)
+    saved = dict(session.state or {})
+    if saved.get("mode") != "avatar":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="not_an_avatar_session")
+    if session.status != "in_progress":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="interview_session_not_in_progress")
+
+    topics = saved.get("topic_plan", [])
+    # About three minutes per topic, bounded by what the TruGen plan allows per call.
+    max_seconds = min(get_settings().trugen_max_call_seconds, max(180, 180 * len(topics)))
+    max_minutes = max(1, max_seconds // 60)
+    role_title = (saved.get("job_context") or {}).get("role_title") or "Practice interview"
+
+    try:
+        agent_id = saved.get("trugen_agent_id")
+        if not agent_id:
+            agent_id = await trugen.create_interview_agent(
+                name=f"TRACE interview {session.id}",
+                system_prompt=_avatar_system_prompt(saved, profile, max_minutes),
+                greeting=f"Hi {(profile.full_name or '').split(' ')[0] or 'there'}, thanks for joining. "
+                f"This is your interview for {role_title}. Whenever you're ready, say hello and we'll begin.",
+                max_duration_seconds=max_seconds,
+            )
+            saved["trugen_agent_id"] = agent_id
+        minted = await trugen.create_conversation_token(
+            agent_id=agent_id,
+            user_id=str(session.id),
+            user_name=profile.full_name or "Candidate",
+            context={"interview_session_id": str(session.id), "role_title": role_title},
+        )
+    except trugen.TrugenBusy as exc:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="avatar_busy") from exc
+    except trugen.TrugenUnavailable as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="avatar_interviews_unavailable") from exc
+    finally:
+        # Persist the agent id even when minting failed, so a retry reuses it instead of
+        # creating a second agent.
+        if saved.get("trugen_agent_id") and saved.get("trugen_agent_id") != (session.state or {}).get("trugen_agent_id"):
+            session.state = saved
+            await db.commit()
+
+    saved["trugen_conversation_ids"] = [*saved.get("trugen_conversation_ids", []), minted["conversation_id"]]
+    session.state = saved
+    await db.commit()
+    return minted
+
+
+async def _collect_avatar_transcript(saved: dict) -> list[dict[str, str]]:
+    """Pull every TruGen conversation for the session, in order, into one transcript.
+
+    TruGen finalizes a conversation's transcript a moment after the call closes, so a
+    conversation still reported as live is re-read a few times before being taken as is.
+    """
+    turns: list[dict[str, str]] = []
+    for conversation_id in saved.get("trugen_conversation_ids", []):
+        status_, part = "", []
+        for attempt in range(4):
+            status_, part = await trugen.fetch_transcript(conversation_id)
+            if status_.lower() == "ended" or attempt == 3:
+                break
+            await asyncio.sleep(1.5)
+        turns.extend(part)
+    return turns
 
 
 @router.post("/interview-sessions/{session_id}/turn", response_model=InterviewTurnResponse)
@@ -822,6 +946,29 @@ async def end_interview(
     session, _ = await _session_owned_by(db, session_id, user)
 
     saved = session.state or {}
+    if saved.get("mode") == "avatar" and session.status == "in_progress":
+        try:
+            avatar_turns = await without_db_connection(db, lambda: _collect_avatar_transcript(saved))
+        except trugen.TrugenUnavailable as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="avatar_transcript_unavailable") from exc
+        session = await db.merge(session)
+        if not any(t["role"] == "candidate" for t in avatar_turns):
+            # Nothing the candidate said reached the transcript (they ended before
+            # answering, or the call never connected). Scoring that would put a fabricated
+            # report in front of a recruiter, so the session stays open to resume instead.
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="interview_transcript_empty")
+
+        await db.execute(
+            InterviewTranscriptTurn.__table__.delete().where(InterviewTranscriptTurn.session_id == session.id)
+        )
+        for index, turn in enumerate(avatar_turns):
+            db.add(InterviewTranscriptTurn(session_id=session.id, turn_index=index, role=turn["role"], text=turn["text"]))
+        saved = {**saved, "transcript": avatar_turns}
+        session.state = saved
+        await db.commit()
+        if saved.get("trugen_agent_id"):
+            await trugen.delete_agent(saved["trugen_agent_id"])
+
     report_state: InterviewReportState = {
         "transcript": saved.get("transcript", []),
         "per_topic_scores": saved.get("per_topic_scores", {}),

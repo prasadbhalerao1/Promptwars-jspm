@@ -86,6 +86,16 @@ class Settings(BaseSettings):
     # Temperature for calls that must be reproducible (rubric scoring). Anything scored
     # and persisted should not vary between two runs over identical input.
     llm_temperature_deterministic: float = 0.0
+    # TruGen video-avatar interviews (services/api/core/trugen.py). Empty key means the
+    # avatar mode is off and every interview runs the classic voice/text loop.
+    trugen_api_key: str = ""
+    trugen_avatar_id: str = ""
+    trugen_base_url: str = "https://api.trugen.ai/v1"
+    trugen_http_timeout_seconds: float = 20.0
+    # Hard ceiling on one avatar call. The trial plan rejects agents asking for more than
+    # 300s ("exceeds plan limit"); raise this only after upgrading the TruGen plan. A
+    # candidate who runs out of time can reconnect, and both calls are scored together.
+    trugen_max_call_seconds: int = 300
     github_client_id: str = ""
     github_client_secret: str = ""
     github_oauth_redirect_uri: str = ""
@@ -103,15 +113,18 @@ class Settings(BaseSettings):
     #
     # Talent Score sub-score weights (doc 08 SS1). Renormalized over whichever sub-scores
     # actually resolved, so they need not sum to 1.0 after an override — but they should.
-    weight_coding_ability: float = 0.16
-    weight_problem_solving: float = 0.16
+    # verified_credentials is deliberately the lightest: certificates and resume are the
+    # easiest inputs to fake, so they inform the score without being able to carry it.
+    weight_coding_ability: float = 0.15
+    weight_problem_solving: float = 0.15
     weight_project_quality: float = 0.12
-    weight_innovation: float = 0.12
+    weight_innovation: float = 0.11
     weight_technical_consistency: float = 0.08
     weight_community_participation: float = 0.08
-    weight_leadership: float = 0.08
-    weight_open_source_contributions: float = 0.10
-    weight_hackathon_performance: float = 0.10
+    weight_leadership: float = 0.07
+    weight_open_source_contributions: float = 0.09
+    weight_hackathon_performance: float = 0.09
+    weight_verified_credentials: float = 0.06
 
     # Job-match weights (doc 08 SS2). The matching module docstring already described
     # these as "tunable defaults", which is precisely an argument for configurability.

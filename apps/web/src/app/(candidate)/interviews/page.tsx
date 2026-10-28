@@ -23,9 +23,33 @@ import {
   startInterview,
   type InterviewDefinitionQuestion,
   type InterviewDefinitionResponse,
+  type InterviewMode,
 } from "@/lib/api";
+import { userFacingMessage } from "@/lib/errors";
+import { cn } from "@/lib/utils";
+import { Bot, MessageSquareText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
+const MODE_OPTIONS: {
+  value: InterviewMode;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  {
+    value: "avatar",
+    title: "Video interviewer",
+    description: "A live AI interviewer on video. Speak naturally, or type.",
+    icon: Bot,
+  },
+  {
+    value: "classic",
+    title: "Voice and text",
+    description: "One question at a time. Answer by dictation or typing.",
+    icon: MessageSquareText,
+  },
+];
 
 export default function CandidateInterviewsPage() {
   const router = useRouter();
@@ -44,6 +68,7 @@ export default function CandidateInterviewsPage() {
   // Navigation
   const [startingSession, setStartingSession] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<InterviewMode>("avatar");
 
   // The device-check lobby both entry points pass through. `definitionId` is null for a
   // generated practice interview (which starts from a topic_plan instead).
@@ -140,16 +165,22 @@ export default function CandidateInterviewsPage() {
       const result = await startInterview(
         token,
         lobby.definitionId
-          ? { interview_definition_id: lobby.definitionId }
-          : { topic_plan: lobby.topics },
+          ? { interview_definition_id: lobby.definitionId, mode }
+          : {
+              topic_plan: lobby.topics,
+              // The role the practice topics were generated from, so the interviewer
+              // questions against this JD rather than bare topic names.
+              role_title: practiceRole || undefined,
+              job_description: practiceDesc || undefined,
+              years_experience: practiceYears ? Number(practiceYears) : undefined,
+              mode,
+            },
       );
       // router.push, not window.location.href: a full document reload throws away
       // the whole React tree and re-downloads the bundle just to change route.
       router.push(`/interview/${result.session_id}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to start interview",
-      );
+      setError(userFacingMessage(err));
       setStartingSession(null);
     }
   }
@@ -170,6 +201,51 @@ export default function CandidateInterviewsPage() {
             {error}
           </p>
         )}
+
+        <fieldset className="mb-4">
+          <legend className="mb-2 text-meta font-medium text-muted-foreground">
+            Interview style
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {MODE_OPTIONS.map((option) => {
+              const selected = mode === option.value;
+              return (
+                <label
+                  key={option.value}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-lg bg-card p-4 shadow-flat ring-2 transition-shadow duration-(--animate-duration-fast) has-[:focus-visible]:ring-ring/50",
+                    selected ? "ring-primary" : "ring-transparent hover:ring-border",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="interview-mode"
+                    value={option.value}
+                    checked={selected}
+                    onChange={() => setMode(option.value)}
+                    className="sr-only"
+                  />
+                  <span
+                    className={cn(
+                      "flex size-9 shrink-0 items-center justify-center rounded-md",
+                      selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <option.icon aria-hidden className="size-5" />
+                  </span>
+                  <span className="space-y-0.5">
+                    <span className="block text-body font-medium text-foreground">
+                      {option.title}
+                    </span>
+                    <span className="block text-meta text-muted-foreground">
+                      {option.description}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
 
         <InterviewLobby
           topics={lobby.topics}
