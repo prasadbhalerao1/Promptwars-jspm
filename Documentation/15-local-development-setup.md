@@ -60,7 +60,7 @@ Seed logins are `alice@example.com` … `evan@example.com`, password `password12
 > a query costs what it costs to execute, with no network in the path. Hosting them
 > elsewhere makes every query on every page pay a round trip before any application
 > logic runs, which shows up as uniform slowness across the whole app and is invisible
-> to a query profiler. See [guides/BACKEND_LATENCY_AUDIT.md](guides/BACKEND_LATENCY_AUDIT.md).
+> to a query profiler.
 
 ## Services and URLs
 
