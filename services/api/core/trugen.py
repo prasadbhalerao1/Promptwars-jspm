@@ -60,12 +60,21 @@ def _raise_for(response: httpx.Response, action: str) -> None:
 
 
 async def create_interview_agent(
-    *, name: str, system_prompt: str, greeting: str, max_duration_seconds: int
+    *,
+    name: str,
+    system_prompt: str,
+    greeting: str,
+    max_duration_seconds: int,
+    conversational_context: str = "",
 ) -> str:
     """Create a private interviewer agent and return its id."""
     settings = get_settings()
     body: dict[str, Any] = {
         "agent_name": name[:80],
+        # Kept for the dashboard only. The LLM reads the per-avatar `persona_prompt`, and
+        # TruGen does NOT copy this field into it despite the docs: an agent created with
+        # only this set ran on the stock "You're a helpful ai agent" persona and behaved
+        # like a chatbot ("How can I help you today?"). Verified against a live agent.
         "agent_system_prompt": system_prompt,
         # The platform default prompt is written for a support assistant; layered on top
         # of an interviewer it invites the agent to be "helpful" by answering questions.
@@ -75,7 +84,16 @@ async def create_interview_agent(
             {
                 "avatar_key_id": settings.trugen_avatar_id,
                 "timeout": max_duration_seconds,
+                "persona_name": "TRACE Interviewer",
+                "persona_prompt": system_prompt,
+                "conversational_context": conversational_context,
                 "welcome_message": {"messages": [greeting], "wait_time": 1},
+                # Candidates think before answering. The default 30s idle callout made the
+                # agent treat thinking time as a cue to move on to the next topic.
+                "idle_timeout": {
+                    "timeout": 45,
+                    "filler_phrases": ["Take your time.", "Whenever you're ready."],
+                },
                 "exit_message": {
                     "messages": ["We're at time. Thank you for your answers, you can end the interview now."],
                     "max_call_duration": max_duration_seconds,
@@ -131,6 +149,24 @@ async def create_conversation_token(
     _raise_for(response, "session token")
     data = response.json()
     return {"token": data["token"], "conversation_id": data["conversationId"]}
+
+
+async def conversation_ids_for_agent(agent_id: str, *, max_pages: int = 5) -> list[str]:
+    """Ids of every conversation run against `agent_id`, oldest first.
+
+    The list endpoint has no agent filter, so this pages through and filters locally.
+    Bounded, because it only exists as a recovery path.
+    """
+    found: list[tuple[str, str]] = []
+    async with _client() as client:
+        for page in range(max_pages):
+            response = await client.get("/ext/conversation", params={"offset": page * 50, "perpage": 50})
+            _raise_for(response, "conversation list")
+            rows = response.json() or []
+            found += [(r.get("created_at") or "", r["id"]) for r in rows if r.get("agent_id") == agent_id]
+            if len(rows) < 50:
+                break
+    return [cid for _, cid in sorted(found)]
 
 
 async def fetch_transcript(conversation_id: str) -> tuple[str, list[dict[str, str]]]:

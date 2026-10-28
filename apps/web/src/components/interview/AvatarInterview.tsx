@@ -40,6 +40,12 @@ interface Caption {
 
 type Phase = "ready" | "connecting" | "live" | "ending" | "error";
 
+/** TruGen agents wait for the candidate to speak before their first turn. This is sent
+ * once, as typed input, when the interviewer's video arrives, so the interview starts on
+ * its own. The backend ignores this exact line when deciding whether anything was
+ * answered (`_AVATAR_KICKOFF` in modules/assessments/router.py); keep the two in sync. */
+const KICKOFF_MESSAGE = "Hi, I'm ready to start the interview.";
+
 /** The LiveKit room the TruGen SDK manages internally. Reached for two things the SDK
  * does not expose: captions tagged with *who* spoke (the SDK's own caption event drops
  * the speaker), and typed answers, which TruGen agents accept on LiveKit's standard
@@ -108,6 +114,7 @@ export function AvatarInterview({
   const selfVideoRef = useRef<HTMLVideoElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const captionsEndRef = useRef<HTMLDivElement>(null);
+  const kickedOffRef = useRef(false);
 
   const upsertCaption = useCallback((caption: Caption) => {
     setCaptions((prev) => {
@@ -151,6 +158,15 @@ export function AvatarInterview({
     setCameraOn(false);
   }, []);
 
+  // Show the candidate's camera as soon as the page opens, not only after Start: they
+  // already allowed it in the lobby, and a blank "Camera off" tile reads as broken.
+  // Acquiring the camera is the "subscribe to an external system" case the rule allows;
+  // its state only updates once getUserMedia resolves.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void startCamera();
+  }, [startCamera]);
+
   // The <video> mounts only once cameraOn flips, so attach the stream afterwards.
   useEffect(() => {
     if (cameraOn && selfVideoRef.current && cameraStreamRef.current) {
@@ -174,7 +190,7 @@ export function AvatarInterview({
     try {
       const token = await getToken();
       if (!token) throw new Error("No session token");
-      void startCamera();
+      if (!cameraStreamRef.current) void startCamera();
 
       const minted = await getAvatarToken(token, sessionId);
       const session = await createClient({ token: minted.token });
@@ -182,6 +198,22 @@ export function AvatarInterview({
 
       session.on(TruGenEvent.VIDEO_STREAM_STARTED, (track: { attach: (el: HTMLMediaElement) => void }) => {
         if (avatarVideoRef.current) track.attach(avatarVideoRef.current);
+        // The interviewer is now in the room: nudge it to open, once per page. A short
+        // delay lets its audio pipeline finish joining so the greeting isn't clipped.
+        if (kickedOffRef.current) return;
+        kickedOffRef.current = true;
+        setTimeout(() => {
+          const room = roomOf(session);
+          if (!room) return;
+          void room.localParticipant
+            .sendText(KICKOFF_MESSAGE, { topic: "lk.chat" })
+            .then(() =>
+              upsertCaption({ id: "kickoff", role: "you", text: KICKOFF_MESSAGE, final: true }),
+            )
+            .catch(() => {
+              // Not fatal: the candidate can still start it by saying hello.
+            });
+        }, 1500);
       });
       session.on(TruGenEvent.AGENT_SPEAKING_STARTED, () => setAgentSpeaking(true));
       session.on(TruGenEvent.AGENT_SPEAKING_ENDED, () => setAgentSpeaking(false));
@@ -262,8 +294,14 @@ export function AvatarInterview({
     setPhase("ending");
     setError(null);
     try {
-      await sessionRef.current?.disconnect();
+      // Bounded: a TruGen teardown that never resolves left the page on "Generating" with
+      // the report request never sent. The call is over either way once we stop waiting.
+      const session = sessionRef.current;
       sessionRef.current = null;
+      await Promise.race([
+        session?.disconnect().catch(() => undefined),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]);
       stopCamera();
       const token = await getToken();
       if (!token) throw new Error("No session token");
@@ -352,7 +390,7 @@ export function AvatarInterview({
                   <Loader2 aria-hidden className="size-8 animate-spin text-primary" />
                   <p className="text-body text-muted-foreground">
                     {phase === "ending"
-                      ? "Generating your interview report"
+                      ? "Scoring your answers. This takes about 30 to 60 seconds."
                       : "Your interviewer is joining"}
                   </p>
                 </>
@@ -366,7 +404,7 @@ export function AvatarInterview({
                       Ready when you are
                     </p>
                     <p className="text-body text-muted-foreground">
-                      Answer out loud, or type if you prefer. Say hello to begin.
+                      Your interviewer will greet you and ask the first question. Answer out loud, or type if you prefer.
                     </p>
                   </div>
                   <Button size="lg" onClick={connect}>

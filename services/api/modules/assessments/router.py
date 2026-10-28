@@ -754,6 +754,12 @@ async def get_interview_session(
     }
 
 
+# Sent automatically by the browser (KICKOFF_MESSAGE in components/interview/
+# AvatarInterview.tsx) because TruGen agents wait for the candidate to speak first. It is
+# not an answer, so it never counts toward "the candidate said something scoreable".
+_AVATAR_KICKOFF = "Hi, I'm ready to start the interview."
+
+
 def _avatar_system_prompt(saved: dict, profile: CandidateProfile, max_minutes: int) -> str:
     job = saved.get("job_context") or {}
     years = job.get("years_experience")
@@ -800,8 +806,13 @@ async def avatar_session_token(
                 name=f"TRACE interview {session.id}",
                 system_prompt=_avatar_system_prompt(saved, profile, max_minutes),
                 greeting=f"Hi {(profile.full_name or '').split(' ')[0] or 'there'}, thanks for joining. "
-                f"This is your interview for {role_title}. Whenever you're ready, say hello and we'll begin.",
+                f"This is your interview for {role_title}.",
                 max_duration_seconds=max_seconds,
+                conversational_context=(
+                    f"Interview for {role_title}. Topics in order: "
+                    + "; ".join(topics)
+                    + ". Ask one question at a time, spoken plainly, no markdown or lists."
+                ),
             )
             saved["trugen_agent_id"] = agent_id
         minted = await trugen.create_conversation_token(
@@ -821,8 +832,13 @@ async def avatar_session_token(
             session.state = saved
             await db.commit()
 
-    saved["trugen_conversation_ids"] = [*saved.get("trugen_conversation_ids", []), minted["conversation_id"]]
-    session.state = saved
+    # A new dict, not `saved` mutated in place: `saved` may already be the object assigned
+    # to `session.state` in the `finally` above, and reassigning the same object is not a
+    # change SQLAlchemy can see, so the conversation id was silently never persisted.
+    session.state = {
+        **saved,
+        "trugen_conversation_ids": [*saved.get("trugen_conversation_ids", []), minted["conversation_id"]],
+    }
     await db.commit()
     return minted
 
@@ -834,7 +850,12 @@ async def _collect_avatar_transcript(saved: dict) -> list[dict[str, str]]:
     conversation still reported as live is re-read a few times before being taken as is.
     """
     turns: list[dict[str, str]] = []
-    for conversation_id in saved.get("trugen_conversation_ids", []):
+    conversation_ids = list(saved.get("trugen_conversation_ids") or [])
+    if not conversation_ids and saved.get("trugen_agent_id"):
+        # Each session has its own agent, so its conversations can be recovered from
+        # TruGen even if the ids were never recorded here.
+        conversation_ids = await trugen.conversation_ids_for_agent(saved["trugen_agent_id"])
+    for conversation_id in conversation_ids:
         status_, part = "", []
         for attempt in range(4):
             status_, part = await trugen.fetch_transcript(conversation_id)
@@ -952,7 +973,7 @@ async def end_interview(
         except trugen.TrugenUnavailable as exc:
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="avatar_transcript_unavailable") from exc
         session = await db.merge(session)
-        if not any(t["role"] == "candidate" for t in avatar_turns):
+        if not any(t["role"] == "candidate" and t["text"] != _AVATAR_KICKOFF for t in avatar_turns):
             # Nothing the candidate said reached the transcript (they ended before
             # answering, or the call never connected). Scoring that would put a fabricated
             # report in front of a recruiter, so the session stays open to resume instead.
