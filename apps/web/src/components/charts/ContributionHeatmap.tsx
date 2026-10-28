@@ -11,11 +11,11 @@ interface ContributionHeatmapProps {
 /** Five intensity steps built from one hue, so the ramp reads as a single scale
  * rather than five unrelated colours. Level 0 is a neutral "no activity" cell. */
 const LEVEL_CLASSNAMES = [
-  "bg-muted/80 dark:bg-zinc-800",
-  "bg-[#9be9a8] dark:bg-[#0e4429]",
-  "bg-[#40c463] dark:bg-[#006d32]",
-  "bg-[#30a14e] dark:bg-[#26a641]",
-  "bg-[#216e39] dark:bg-[#39d353]",
+  "bg-muted",
+  "bg-[#9be9a8]",
+  "bg-[#40c463]",
+  "bg-[#30a14e]",
+  "bg-[#216e39]",
 ];
 
 function levelFor(count: number, max: number): number {

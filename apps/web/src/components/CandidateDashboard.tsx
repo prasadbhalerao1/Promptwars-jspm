@@ -23,6 +23,13 @@ import { StatsGrid } from "@/components/stats/StatsGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import {
   connectGithubUsername,
@@ -86,6 +93,42 @@ const ScoreTrendLine = dynamic(
     loading: () => <div className="h-56 animate-pulse rounded-md bg-muted" />,
   },
 );
+
+type ActivitySource = "combined" | "github" | "leetcode";
+
+const ACTIVITY_SOURCE_LABELS: Record<ActivitySource, string> = {
+  combined: "GitHub + LeetCode",
+  github: "GitHub",
+  leetcode: "LeetCode",
+};
+
+/** Total plus longest/current daily streaks (UTC dates) for a set of activity days. */
+function summarizeActivity(days: { date: string; count: number }[]) {
+  const active = new Set(days.filter((d) => d.count > 0).map((d) => d.date));
+  const total = days.reduce((acc, d) => acc + d.count, 0);
+  const dayMs = 86_400_000;
+  const sorted = [...active].sort();
+  let longest = 0;
+  let run = 0;
+  let prev = 0;
+  for (const date of sorted) {
+    const t = Date.parse(date);
+    run = prev && t - prev === dayMs ? run + 1 : 1;
+    longest = Math.max(longest, run);
+    prev = t;
+  }
+  // A streak still counts as current if today simply has no activity yet.
+  const todayMs = Date.parse(new Date().toISOString().slice(0, 10));
+  let cursor = active.has(new Date(todayMs).toISOString().slice(0, 10))
+    ? todayMs
+    : todayMs - dayMs;
+  let current = 0;
+  while (active.has(new Date(cursor).toISOString().slice(0, 10))) {
+    current++;
+    cursor -= dayMs;
+  }
+  return { total, longest, current };
+}
 
 export function CandidateDashboard() {
   const { getToken } = useAuth();
@@ -254,27 +297,41 @@ export function CandidateDashboard() {
   const devStatsError = profileResource.error ?? githubResource.error;
 
   const hasLeetcode = Boolean(profile?.leetcode_stats?.submission_calendar);
-  const combinedContributionDays = useMemo(() => {
+  const [activitySource, setActivitySource] = useState<ActivitySource>("combined");
+  const source: ActivitySource = hasLeetcode ? activitySource : "github";
+
+  const leetcodeDays = useMemo(() => {
+    const calendar = profile?.leetcode_stats?.submission_calendar;
+    if (!calendar) return [];
+    return Object.entries(calendar).map(([unixSec, count]) => ({
+      date: new Date(Number(unixSec) * 1000).toISOString().slice(0, 10),
+      count: Number(count),
+    }));
+  }, [profile?.leetcode_stats]);
+
+  const activityDays = useMemo(() => {
+    const githubDays = githubStats?.days ?? [];
+    if (source === "github") return githubDays;
+    if (source === "leetcode") return leetcodeDays;
     const map = new Map<string, number>();
-    for (const d of githubStats?.days ?? []) {
+    for (const d of [...githubDays, ...leetcodeDays]) {
       map.set(d.date, (map.get(d.date) ?? 0) + d.count);
     }
-    if (profile?.leetcode_stats?.submission_calendar) {
-      for (const [unixSec, count] of Object.entries(
-        profile.leetcode_stats.submission_calendar,
-      )) {
-        const date = new Date(Number(unixSec) * 1000)
-          .toISOString()
-          .slice(0, 10);
-        map.set(date, (map.get(date) ?? 0) + Number(count));
-      }
-    }
     return Array.from(map.entries()).map(([date, count]) => ({ date, count }));
-  }, [githubStats?.days, profile?.leetcode_stats]);
+  }, [source, githubStats?.days, leetcodeDays]);
 
-  const totalCombinedContributions = useMemo(() => {
-    return combinedContributionDays.reduce((acc, curr) => acc + curr.count, 0);
-  }, [combinedContributionDays]);
+  const activityTotals = useMemo(() => {
+    // GitHub-only keeps the backend's figures; the other views derive theirs from the
+    // days shown so the numbers always match the grid.
+    if (source === "github" && githubStats) {
+      return {
+        total: githubStats.total_contributions,
+        longest: githubStats.longest_streak,
+        current: githubStats.current_streak,
+      };
+    }
+    return summarizeActivity(activityDays);
+  }, [source, githubStats, activityDays]);
 
   return (
     <div className="mx-auto w-full max-w-workspace px-4 py-6 md:px-8 md:py-8">
@@ -449,38 +506,54 @@ export function CandidateDashboard() {
 
               {/* Row 1: Contribution Activity (Full-width) */}
               <Section
-                title={
-                  hasLeetcode
-                    ? "Contribution Activity (GitHub + LeetCode)"
-                    : "Contribution Activity"
+                title={`Contribution Activity (${ACTIVITY_SOURCE_LABELS[source]})`}
+                action={
+                  hasLeetcode ? (
+                    <Select
+                      value={source}
+                      onValueChange={(value) => {
+                        if (value) setActivitySource(value as ActivitySource);
+                      }}
+                    >
+                      <SelectTrigger className="w-48" aria-label="Activity source">
+                        <SelectValue>
+                          {(value: ActivitySource) => ACTIVITY_SOURCE_LABELS[value]}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(ACTIVITY_SOURCE_LABELS) as ActivitySource[]).map(
+                          (key) => (
+                            <SelectItem key={key} value={key}>
+                              {ACTIVITY_SOURCE_LABELS[key]}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                  ) : null
                 }
               >
                 <div className="mb-4 flex flex-wrap items-center gap-6 text-meta font-medium text-muted-foreground select-none">
                   <span>
                     Total Activity:{" "}
                     <span className="font-semibold text-foreground">
-                      {totalCombinedContributions || githubStats.total_contributions}
+                      {activityTotals.total}
                     </span>
                   </span>
                   <span>
                     Max Streak:{" "}
                     <span className="font-semibold text-foreground">
-                      {githubStats.longest_streak}d
+                      {activityTotals.longest}d
                     </span>
                   </span>
                   <span>
                     Current Streak:{" "}
                     <span className="font-semibold text-foreground">
-                      {githubStats.current_streak}d
+                      {activityTotals.current}d
                     </span>
                   </span>
-                  {hasLeetcode && (
-                    <span className="rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 text-xs font-semibold">
-                      GitHub & LeetCode Combined
-                    </span>
-                  )}
                 </div>
-                <ContributionHeatmap days={combinedContributionDays} />
+                <ContributionHeatmap days={activityDays} />
               </Section>
 
               {/* Row 2: Languages and Commit Activity (Side by Side) */}

@@ -13,6 +13,10 @@
  * holding L. Status colours sit in a deliberately tight 4.86-5.70:1 band so that no
  * single status shouts louder than another. */
 
+/* Tailwind's default `dark:` follows the OS colour scheme, which turned stray `dark:`
+ * classes on whenever the OS was dark. Bind it to the never-applied `.dark` class. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Elevation. Shadow-as-border: a 1px CSS border renders inconsistently across
    * browsers and stacks badly against a real shadow, so the ring *is* the border.
