@@ -693,10 +693,14 @@ export default function ProfileEditPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-meta font-medium text-muted-foreground font-mono">
+                      <label
+                        htmlFor="hackathon-result"
+                        className="text-meta font-medium text-muted-foreground font-mono"
+                      >
                         Result
                       </label>
                       <select
+                        id="hackathon-result"
                         className="select-control"
                         value={hackathonResult}
                         onChange={(e) =>
@@ -713,11 +717,15 @@ export default function ProfileEditPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-meta font-medium text-muted-foreground font-mono">
+                      <label
+                        htmlFor="hackathon-weight"
+                        className="text-meta font-medium text-muted-foreground font-mono"
+                      >
                         Importance (1-5)
                       </label>
                       <div className="flex items-center gap-2">
                         <input
+                          id="hackathon-weight"
                           type="range"
                           min="1"
                           max="5"
