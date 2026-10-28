@@ -290,7 +290,7 @@ function calculateKeywordScore(data: ResumeData): {
     score = Math.max(score - 15, 0);
   }
 
-  return { score: Math.min(score, 100), issues };
+  return { score: Math.max(0, Math.min(score, 100)), issues };
 }
 
 function calculateFormattingScore(data: ResumeData): {
@@ -420,7 +420,7 @@ function calculateContentScore(data: ResumeData): {
     score -= 10;
   }
 
-  return { score: Math.min(score, 100), issues };
+  return { score: Math.max(0, Math.min(score, 100)), issues };
 }
 
 // Helper functions
