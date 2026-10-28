@@ -72,3 +72,8 @@ dev/
 .archive/
 infra/
 scripts/
+
+# Test suites: kept local for now, not committed
+**/tests/
+test_*.py
+*.test.ts
