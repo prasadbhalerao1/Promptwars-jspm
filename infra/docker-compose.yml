@@ -1,0 +1,55 @@
+# TRACE — Local Infrastructure
+#
+# Everything the app depends on for data/state runs locally in Docker: Postgres,
+# Qdrant, and Redis. There is no cloud dependency — this compose file is the whole
+# data tier, and it comes up with a plain:
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#
+# Healthchecks make it possible to wait for readiness (`docker compose ps`) before
+# running `alembic upgrade head` against a Postgres still starting up.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trace_postgres
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: talent_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d talent_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: trace_qdrant
+    ports:
+      - "6333:6333"  # REST / HTTP
+      - "6334:6334"  # gRPC
+    volumes:
+      - qdrantdata:/qdrant/storage
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: trace_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  qdrantdata:
