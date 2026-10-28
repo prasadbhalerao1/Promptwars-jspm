@@ -98,3 +98,10 @@ testpaths = ["services", "packages"]
 # ModuleNotFoundError on a clean checkout. Adding the root here makes a bare
 # `uv run pytest` work without callers having to set PYTHONPATH themselves.
 pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# Pyflakes: unused imports/variables, undefined names, redefinitions. Enforced in CI.
+select = ["F"]
