@@ -1,0 +1,101 @@
+[project]
+name = "trace"
+version = "0.1.0"
+description = "TRACE — Talent Reliability & Assessment through Credential Evidence"
+requires-python = ">=3.12,<3.13"
+
+# Versions are pinned to what the working environment was verified against. Several are
+# load-bearing rather than incidental: qdrant-client 1.18 removed `search_batch` (see
+# services/agents/recruitment/tools/embeddings.py), langgraph 1.x reworked the graph
+# API, and pydantic 2.x is assumed throughout the shared schemas.
+dependencies = [
+    # --- Web / API ---
+    "fastapi==0.140.13",
+    "uvicorn[standard]==0.51.0",
+    "python-multipart==0.0.32",
+    "email-validator==2.3.0",
+
+    # --- Database ---
+    "sqlalchemy==2.0.51",
+    "alembic==1.18.5",
+    "asyncpg==0.31.0",          # async driver used by the app at runtime
+    "psycopg[binary]==3.3.4",   # sync driver; Alembic migrations run through this
+
+    # --- Config / validation ---
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.2",
+    "python-dotenv==1.2.2",
+
+    # --- Queue / cache ---
+    "redis==5.3.1",
+    "arq==0.28.0",
+
+    # --- AI / agents ---
+    "langgraph==1.2.9",
+    "langchain-core==1.5.2",
+    "anthropic==0.120.2",
+    "openai==2.50.0",           # also covers Groq, xAI and Gemini via OpenAI-compatible APIs
+    "langfuse==4.14.1",
+
+    # --- Embeddings & vector search ---
+    # torch + sentence-transformers are ~2.5GB installed. They are imported lazily
+    # (function-local inside get_embedder), so API boot does not pay for them.
+    "sentence-transformers==5.6.1",
+    "torch==2.13.0",
+    "qdrant-client==1.18.0",
+    "numpy==2.5.1",
+    "scikit-learn==1.9.0",      # salary quantile regression
+
+    # --- Documents / OCR / media ---
+    "pymupdf==1.28.0",
+    "pdfplumber==0.11.10",
+    "python-docx==1.2.0",
+    "python-pptx==1.0.2",
+    "pytesseract==0.3.13",      # requires the Tesseract binary on PATH
+    "pillow==12.3.0",
+    "weasyprint==69.0",
+    "cloudinary==1.45.0",
+
+    # --- Static analysis (assessment code review) ---
+    # radon is a hard import in static_analysis.py and judgment_scores.py; lizard and
+    # bandit are imported lazily inside try blocks but are required for the full
+    # code-quality signal rather than optional extras.
+    "radon==6.0.1",
+    "lizard==1.23.0",
+    "bandit==1.9.4",
+
+    # --- Fraud detection ---
+    "imagehash==4.3.2",         # perceptual photo hashing
+    "datasketch==2.0.0",        # MinHash LSH text fingerprinting
+    "copydetect==0.5.0",        # code plagiarism
+
+    # --- Auth / integrations ---
+    "bcrypt==5.0.0",
+    "python-jose==3.5.0",
+    "pygithub==2.9.1",
+    "httpx==0.28.1",
+    "sentry-sdk==2.66.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+]
+
+# The repo is a monorepo of importable packages (`packages/`, `services/`) rather than a
+# single installable distribution. uv still needs *something* to resolve against, so the
+# project is declared virtual: dependencies are installed into the environment, but no
+# build backend runs and nothing is packaged.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["services", "packages"]
+# Tests import their subjects as `services.*` / `packages.*`, which only resolves
+# with the repo root on sys.path. Nothing is installed (`package = false` above),
+# so there is no site-packages entry to supply it and collection fails with
+# ModuleNotFoundError on a clean checkout. Adding the root here makes a bare
+# `uv run pytest` work without callers having to set PYTHONPATH themselves.
+pythonpath = ["."]
