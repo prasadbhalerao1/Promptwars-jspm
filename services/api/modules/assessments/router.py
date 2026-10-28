@@ -42,7 +42,6 @@ from packages.shared_schemas.assessment import (
     InterviewDefinitionResponse,
     InterviewDefinitionUpdateRequest,
     InterviewReportWithTranscriptResponse,
-    InterviewSessionResponse,
     InterviewSessionWithTranscriptResponse,
     InterviewStartRequest,
     InterviewTurnResponse,
@@ -55,7 +54,6 @@ from services.agents.assessment.interview_graph import get_interview_graph
 from services.agents.assessment.interview_report_graph import get_interview_report_graph
 from services.agents.assessment.state import ContributionState, DefinitionQuestionState, InterviewReportState, InterviewState, VerificationState
 from services.agents.assessment.tools.llm_review import AssessmentUnavailable
-from services.agents.assessment.tools.interview_llm import generate_definition_questions
 from services.agents.assessment.verification_graph import get_verification_graph
 from services.agents.prompts_loader import load_prompt
 from services.api.core import trugen
@@ -521,7 +519,7 @@ async def list_interview_definition_attempts(
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
     """List all interview attempts for a definition (ownership-checked)."""
-    definition = await _definition_owned_by(db, definition_id, user)
+    await _definition_owned_by(db, definition_id, user)
 
     # `has_report` comes from an EXISTS correlated subquery rather than a per-attempt
     # SELECT: this used to issue one extra round trip for every attempt in the list, so a

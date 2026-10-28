@@ -9,7 +9,6 @@ an entire hackathon because one team pasted a bad URL.
 
 from __future__ import annotations
 
-import uuid
 from importlib import import_module
 
 import pytest

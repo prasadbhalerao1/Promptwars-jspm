@@ -15,10 +15,8 @@ Evaluates pitch decks against an explicit rubric and observable slide evidence:
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
-from services.api.core.config import get_settings
 from services.api.core.llm import LLMUnavailable, generate_structured
 
 logger = logging.getLogger("trace.ppt_analyzer.rubric")

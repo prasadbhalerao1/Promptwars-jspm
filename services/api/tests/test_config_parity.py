@@ -13,14 +13,24 @@ is exactly the review moment the old scattered literals never got.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
-from services.api.core.config import get_settings
+from services.api.core.config import Settings
 
 
 @pytest.fixture(scope="module")
 def settings():
-    return get_settings()
+    """The *declared* defaults, not the loaded settings.
+
+    `get_settings()` reads `.env`, so a deployment that legitimately overrides a tunable
+    (a hosted Qdrant needs a longer timeout than the local container) failed this file
+    even though no default had changed. What is pinned here is the code's default.
+    """
+    return SimpleNamespace(
+        **{name: field.default for name, field in Settings.model_fields.items()}
+    )
 
 
 # --- Talent Score formula (was candidate_intelligence/tools/aggregate.py) ------------
@@ -47,11 +57,6 @@ def test_talent_score_weights_sum_to_one(settings) -> None:
 @pytest.mark.parametrize("name,expected", sorted(_TALENT_WEIGHTS.items()))
 def test_talent_score_weight_defaults(settings, name, expected) -> None:
     assert getattr(settings, name) == expected
-
-
-def test_talent_score_weights_sum_to_one(settings) -> None:
-    total = sum(getattr(settings, name) for name in _TALENT_WEIGHTS)
-    assert round(total, 6) == 1.0
 
 
 def test_aggregate_module_reflects_configured_weights() -> None:

@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.db.models import (
     AgentRun,
-    AuthenticityScore,
     CandidateProfile,
     Certification,
     Dispute,

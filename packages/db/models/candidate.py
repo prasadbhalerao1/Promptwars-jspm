@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -7,6 +8,9 @@ from sqlalchemy.sql import func
 from sqlalchemy.types import Boolean, DateTime, Float, Integer
 
 from packages.db.models.base import Base
+
+if TYPE_CHECKING:
+    from packages.db.models.user import User
 
 
 class CandidateProfile(Base):

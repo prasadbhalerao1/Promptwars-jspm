@@ -196,7 +196,6 @@ async def add_hackathon_experience(
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ) -> CandidateProfile:
     """Add a hackathon experience entry (self-reported external hackathon) and trigger rescore."""
-    import uuid
 
     profile = await _get_or_create_profile(db, user)
 

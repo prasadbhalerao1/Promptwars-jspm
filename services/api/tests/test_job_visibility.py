@@ -13,7 +13,6 @@ from __future__ import annotations
 import uuid
 from importlib import import_module
 
-import pytest
 
 recruitment_router = import_module("services.api.modules.recruitment.router")
 

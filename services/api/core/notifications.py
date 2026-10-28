@@ -11,8 +11,6 @@ Gracefully logs notifications locally when NO email provider API key is set.
 import logging
 from typing import Any
 
-from services.api.core.config import get_settings
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,8 +24,6 @@ def dispatch_notification(
 
     Returns True if sent via remote API (Resend/SendGrid) or logged successfully locally.
     """
-    settings = get_settings()
-
     logger.info(
         "DISPATCH_NOTIFICATION event=%s recipient=%s subject='%s' payload=%s",
         event_type,

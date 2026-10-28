@@ -1,4 +1,3 @@
-import functools
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from typing import TypeVar
 

@@ -1,12 +1,10 @@
 """Open-source contributions scoring — percentile-normalized external PR/contribution activity."""
 
-import math
 
 from packages.shared_schemas.candidates import SubScore
 from services.agents.candidate_intelligence.tools.github import GithubAnalysis
 from services.agents.candidate_intelligence.tools.normalization import (
     percentile_normalize,
-    winsorize,
 )
 
 
