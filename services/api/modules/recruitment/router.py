@@ -304,9 +304,8 @@ async def _run_matching_background(job_id: uuid.UUID, use_pool_cache: bool = Tru
     count. `matching_status` lets the frontend poll for completion; `GET /jobs/{id}/matches`
     remains the read path once it's done.
 
-    `use_pool_cache` is positional (not keyword-only) so this same function works both as
-    an arq task target and as the in-process `BackgroundTasks` fallback, which forward
-    arguments positionally — see `services/api/core/queue.py::enqueue`."""
+    `use_pool_cache` is positional (not keyword-only) because `BackgroundTasks.add_task`
+    forwards arguments positionally."""
     async with async_session() as bg_db:
         result = await bg_db.execute(select(Job).where(Job.id == job_id))
         job = result.scalar_one_or_none()

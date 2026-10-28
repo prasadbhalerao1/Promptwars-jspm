@@ -238,30 +238,9 @@ class Settings(BaseSettings):
     # far above what an engaged human generates while still stopping a runaway client.
     rate_limit_per_minute: int = 600
 
-    # Durable background-job queue (services/api/core/queue.py, services/workers/runner.py).
-    # Long AI pipelines (candidate ingestion, job matching, assessment grading, deck
-    # analysis, hackathon ranking) used to run as FastAPI BackgroundTasks inside the API
-    # process: they shared its event loop and were lost silently on restart/deploy,
-    # leaving rows stuck in "processing" forever with no retry.
-    #
-    # When `queue_enabled` is false, or Redis is simply unreachable, every enqueue falls
-    # back to the in-process BackgroundTasks path so local development and the demo work
-    # with no extra moving parts — the queue is an upgrade, never a hard requirement.
+    # Backs the rate limiter (services/api/core/rate_limit.py). Optional: when Redis is
+    # unreachable the limiter falls back to per-process counters.
     redis_url: str = "redis://localhost:6379"
-    queue_enabled: bool = True
-    # Per-job ceiling. Must exceed the slowest pipeline (a large GitHub crawl or a
-    # multi-team hackathon finalization), or arq cancels work that would have succeeded.
-    queue_job_timeout_seconds: int = 900
-    # Total attempts per job, including the first. Note that arq only retries a job when
-    # the task raises `arq.worker.Retry` (or is cancelled) — an ordinary exception is
-    # recorded as failed and never re-run. `services/workers/tasks.py` translates the
-    # transient infrastructure failures worth retrying into `Retry`; permanent ones
-    # (bad input, missing row) deliberately stay non-retryable.
-    queue_max_tries: int = 3
-    # Base delay for the retry backoff in `services/workers/tasks.py` (doubled per try).
-    queue_retry_base_delay_seconds: int = 5
-    # How long completed job results stay in Redis for status inspection.
-    queue_result_ttl_seconds: int = 3600
 
 
 

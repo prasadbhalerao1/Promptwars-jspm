@@ -90,7 +90,6 @@ from services.agents.candidate_intelligence.tools.roadmap import RoadmapGenerati
 from services.agents.candidate_intelligence.tools.skill_gap import CareerGuidanceUnavailable
 from services.api.core.config import get_settings
 from services.api.core.db import get_db, without_db_connection
-from services.api.core.queue import TASK_RUN_INGESTION, enqueue
 from services.api.core.rbac import require_role
 from services.api.core.storage import StorageUnavailable, upload_file
 from services.api.core.tracing import start_agent_trace
@@ -219,14 +218,11 @@ async def add_hackathon_experience(
     await db.refresh(profile)
 
     # Trigger background rescore
-    await enqueue(
-        TASK_RUN_INGESTION,
+    background_tasks.add_task(
+        _run_ingestion_background,
         profile.id,
         {},
         None,
-        background_tasks=background_tasks,
-        fallback=_run_ingestion_background,
-        job_id=f"ingest:{profile.id}:{uuid.uuid4().hex[:8]}",
     )
 
     return profile
@@ -255,14 +251,11 @@ async def remove_hackathon_experience(
     await db.refresh(profile)
 
     # Trigger background rescore
-    await enqueue(
-        TASK_RUN_INGESTION,
+    background_tasks.add_task(
+        _run_ingestion_background,
         profile.id,
         {},
         None,
-        background_tasks=background_tasks,
-        fallback=_run_ingestion_background,
-        job_id=f"ingest:{profile.id}:{uuid.uuid4().hex[:8]}",
     )
 
     return profile
@@ -597,7 +590,7 @@ async def get_my_profile(
 # Content types each ingestion path can actually parse. Resume text extraction
 # (tools/resume.py) handles PDF and Word; certificate OCR (tools/certificate.py) opens
 # the bytes with Pillow, so it needs a real image. Anything else raises deep inside the
-# parser *after* the file has been read into memory and enqueued, surfacing to the
+# parser *after* the file has been read into memory and handed to the background job, surfacing to the
 # candidate as a failed background job rather than a rejected upload.
 _RESUME_CONTENT_TYPES = {
     "application/pdf",
@@ -615,7 +608,7 @@ async def _read_upload_or_400(
     Mirrors the presentation upload route's guard (`detect_format` + a size ceiling),
     which these two routes were missing entirely. Size is checked after the read because
     Starlette has already spooled the body to disk by the time the handler runs — the
-    ceiling bounds what is held in memory and copied into the queue payload, which is
+    ceiling bounds what is held in memory and passed to the background job, which is
     what actually costs.
     """
     if file.content_type not in allowed_types:
@@ -652,14 +645,11 @@ async def ingest_resume(
     profile.ingestion_error = None
     await db.commit()
     await db.refresh(profile)
-    await enqueue(
-        TASK_RUN_INGESTION,
+    background_tasks.add_task(
+        _run_ingestion_background,
         profile.id,
         {"raw_resume_bytes": file_bytes, "raw_resume_content_type": file.content_type},
         None,
-        background_tasks=background_tasks,
-        fallback=_run_ingestion_background,
-        job_id=f"ingest:{profile.id}:{uuid.uuid4().hex[:8]}",
     )
     return profile
 
@@ -682,14 +672,11 @@ async def ingest_certificate(
     profile.ingestion_error = None
     await db.commit()
     await db.refresh(profile)
-    await enqueue(
-        TASK_RUN_INGESTION,
+    background_tasks.add_task(
+        _run_ingestion_background,
         profile.id,
         {"certificate_file_bytes": file_bytes},
         None,
-        background_tasks=background_tasks,
-        fallback=_run_ingestion_background,
-        job_id=f"ingest:{profile.id}:{uuid.uuid4().hex[:8]}",
     )
     return profile
 
@@ -794,14 +781,11 @@ async def github_oauth_callback(
     profile.ingestion_error = None
     await db.commit()
 
-    await enqueue(
-        TASK_RUN_INGESTION,
+    background_tasks.add_task(
+        _run_ingestion_background,
         profile.id,
         {"github_username": github_username, "github_access_token": access_token},
         access_token,
-        background_tasks=background_tasks,
-        fallback=_run_ingestion_background,
-        job_id=f"ingest:{profile.id}:{uuid.uuid4().hex[:8]}",
     )
 
     return RedirectResponse(f"{settings.frontend_url}{return_path}?github=connected")
@@ -828,14 +812,11 @@ async def connect_github_username(
     profile.ingestion_stage = "Analyzing your GitHub repositories"
     await db.commit()
 
-    await enqueue(
-        TASK_RUN_INGESTION,
+    background_tasks.add_task(
+        _run_ingestion_background,
         profile.id,
         {"github_username": clean_username},
         None,
-        background_tasks=background_tasks,
-        fallback=_run_ingestion_background,
-        job_id=f"ingest:{profile.id}:{uuid.uuid4().hex[:8]}",
     )
     await db.refresh(profile)
     return profile

@@ -9,12 +9,7 @@
         similarity_plagiarism & ai_content_heuristic -> aggregation  (join)
     aggregation -> summary_suggestions -> END
 
-Invoked synchronously from the upload route for now (same as candidate_intelligence's
-Flow A) — doc 04 §9 calls for an `arq` background worker, but no `arq` worker
-infrastructure exists yet anywhere in this repo (checked services/, no worker
-entrypoint), so building one exclusively for this module was out of scope for this
-pass. `arq` IS already an installed dependency; see .agents/decisions.md for the
-call to revisit this once a shared worker entrypoint exists.
+Runs as a FastAPI background task scheduled by the upload route.
 """
 
 from langgraph.graph import END, START, StateGraph

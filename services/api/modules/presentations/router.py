@@ -26,7 +26,6 @@ from services.agents.ppt_analyzer.state import PitchAnalysisState
 from services.agents.ppt_analyzer.tools.extraction import UnsupportedDeckFormat, detect_format
 from services.api.core.config import Settings, get_settings
 from services.api.core.db import async_session, get_db
-from services.api.core.queue import TASK_ANALYZE_PRESENTATION, enqueue
 from services.api.core.rbac import get_current_user, require_role
 from services.api.core.storage import StorageUnavailable, upload_file
 from services.api.core.tracing import start_agent_trace
@@ -127,17 +126,14 @@ async def upload_presentation(
     # /status and /report both already handle a still-processing row gracefully — so the
     # only change needed is to actually return as soon as the row exists, and let
     # _analyze_presentation finish the work after the response is sent.
-    await enqueue(
-        TASK_ANALYZE_PRESENTATION,
+    background_tasks.add_task(
+        _analyze_presentation,
         presentation.id,
         user.id,
         file_bytes,
         file.filename,
         file.content_type,
         linked_repo,
-        background_tasks=background_tasks,
-        fallback=_analyze_presentation,
-        job_id=f"deck:{presentation.id}",
     )
 
     return PresentationUploadResponse(presentation_id=presentation.id, status=presentation.status)
