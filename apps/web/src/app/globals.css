@@ -1,0 +1,274 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* TRACE design system. See apps/web/DESIGN.md, which is the spec this file implements.
+ *
+ * Light theme only. There is no ThemeProvider and `.dark` is never applied, so a dark
+ * block here would be unreachable code; `dark:` variants must not be used in components.
+ *
+ * Every colour below was measured for WCAG contrast on the page ground rather than
+ * picked by eye. Values are OKLCH with the measured hex and ratio noted, because OKLCH
+ * lightness maps predictably onto contrast: a later tweak can hold accessibility by
+ * holding L. Status colours sit in a deliberately tight 4.86-5.70:1 band so that no
+ * single status shouts louder than another. */
+
+@theme {
+  /* Elevation. Shadow-as-border: a 1px CSS border renders inconsistently across
+   * browsers and stacks badly against a real shadow, so the ring *is* the border.
+   * Shadows are tinted toward the neutral hue, never pure black. */
+  --shadow-flat: 0 0 0 1px oklch(0.205 0.014 258 / 0.09);
+  --shadow-raised:
+    0 0 0 1px oklch(0.205 0.014 258 / 0.09),
+    0 1px 2px oklch(0.205 0.014 258 / 0.05);
+  --shadow-overlay:
+    0 0 0 1px oklch(0.205 0.014 258 / 0.08),
+    0 8px 24px oklch(0.205 0.014 258 / 0.1);
+
+  /* Type scale. Tracking tightens as size grows, the most reliable signal of
+   * deliberate typography. Display exists for the landing page only; the app tops
+   * out at `title`. */
+  --text-display: clamp(2.75rem, 1.1rem + 6.6vw, 7rem); /* 44-112px */
+  --text-display--line-height: 0.96;
+  --text-display--letter-spacing: -0.04em;
+  --text-headline: clamp(2rem, 1.1rem + 3.6vw, 4.5rem); /* 32-72px */
+  --text-headline--line-height: 1.02;
+  --text-headline--letter-spacing: -0.035em;
+  /* Giant numerals used as design objects: section indices, headline statistics. */
+  --text-stat: clamp(4rem, 2rem + 9vw, 10rem); /* 64-160px */
+  --text-stat--line-height: 0.86;
+  --text-stat--letter-spacing: -0.045em;
+  /* Hero and section supporting copy, one step above body. */
+  --text-lead: 1.1875rem; /* 19px */
+  --text-lead--line-height: 1.5;
+  --text-figure: 2.25rem; /* 36px  headline scores: a Talent Score, a match, a pitch score */
+  --text-figure--line-height: 1;
+  --text-figure--letter-spacing: -0.028em;
+  --text-title: 1.5rem; /* 24px  page titles */
+  --text-title--line-height: 1.25;
+  --text-title--letter-spacing: -0.022em;
+  --text-section: 1.0625rem; /* 17px  section titles */
+  --text-section--line-height: 1.4;
+  --text-section--letter-spacing: -0.012em;
+  --text-body: 0.875rem; /* 14px  body / UI */
+  --text-body--line-height: 1.55;
+  --text-meta: 0.75rem; /* 12px  labels, metadata */
+  --text-meta--line-height: 1.35;
+
+  /* Content widths */
+  --spacing-workspace: 78rem; /* 1248px  dense workspace */
+  --spacing-reading: 45rem; /* 720px   forms and prose */
+
+  /* Motion. Two durations in the app; the landing page adds its own longer
+   * choreography locally. Both are gated by prefers-reduced-motion below. */
+  --animate-duration-fast: 120ms;
+  --animate-duration-base: 180ms;
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  /* Headings share the UI face; a display face earns nothing in a dense data tool. */
+  --font-heading: var(--font-sans);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-muted: var(--primary-muted);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Three radii only: controls / rows+inputs / cards. `xl` and `2xl` alias down to
+   * `lg` so a stray `rounded-xl` cannot introduce a fourth value. */
+  --radius-sm: calc(var(--radius) - 2px); /* 6px  controls */
+  --radius-md: var(--radius); /* 8px  rows, inputs */
+  --radius-lg: calc(var(--radius) + 2px); /* 10px cards */
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 2px);
+}
+
+:root {
+  --radius: 0.5rem; /* 8px */
+
+  /* Ground is a faint cool off-white, not pure #fff, so that white surfaces read as
+   * raised against it without needing a heavy shadow. Neutrals carry a consistent
+   * cool bias; the palette never mixes warm and cool greys. */
+  --background: oklch(0.9911 0.0015 247); /* #fbfcfd */
+  --foreground: oklch(0.205 0.014 258); /* #13171e  17.46:1 */
+
+  --surface: oklch(1 0 0); /* raised surface */
+  --surface-sunken: oklch(0.9761 0.0021 247); /* inset wells, table headers */
+
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  /* The accent: a deep cobalt ink. Appears ONLY on primary actions, active nav,
+   * links, focus rings and selection. Never as a surface, never as decoration, and
+   * never as a status colour: verification state carries `--success`, so that
+   * "primary action" and "verified" can never be confused for one another. */
+  --primary: oklch(0.465 0.145 258); /* #1c56a8  6.91:1 AA */
+  --primary-foreground: oklch(1 0 0); /* white on cobalt is 7.09:1 */
+  --primary-muted: oklch(0.465 0.145 258 / 0.08); /* tint for selected rows */
+
+  --secondary: oklch(0.9761 0.0021 247);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.9761 0.0021 247); /* #f7f8f9 */
+  --muted-foreground: oklch(0.523 0.018 257); /* #636a74  5.30:1 AA */
+  --accent: oklch(0.9761 0.0021 247);
+  --accent-foreground: var(--foreground);
+
+  /* Status. Each is a distinct hue so meaning never rests on lightness alone, and all
+   * four sit within 4.86-5.70:1 so no status dominates the others.
+   * `--warning` is held at #96661c: the obvious lighter amber measures 2.93:1 and
+   * fails AA even at large sizes, which is an accessibility bug when it is the colour
+   * encoding "needs attention". */
+  --success: oklch(0.506 0.108 158); /* #1b774c  5.40:1 AA */
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.5484 0.1055 73); /* #96661c  4.86:1 AA */
+  --warning-foreground: oklch(1 0 0);
+  --destructive: oklch(0.5253 0.155 18); /* #b23a47  5.70:1 AA */
+  --destructive-foreground: oklch(1 0 0);
+  --info: oklch(0.52 0.068 220); /* #367284  5.25:1 AA */
+  --info-foreground: oklch(1 0 0);
+
+  --border: oklch(0.205 0.014 258 / 0.1);
+  --border-strong: oklch(0.205 0.014 258 / 0.18);
+  --input: oklch(0.205 0.014 258 / 0.14);
+  --ring: var(--primary);
+
+  /* Categorical ramp. Five distinct hues, each >=4.8:1 on the ground and separable in
+   * greyscale by lightness. Ordered so the first two cover the common two-series case.
+   * No value repeats: a ramp that reuses a colour renders two series identically. */
+  --chart-1: oklch(0.465 0.145 258); /* cobalt  6.91:1 */
+  --chart-2: oklch(0.506 0.108 158); /* green   5.40:1 */
+  --chart-3: oklch(0.5484 0.1055 73); /* amber   4.86:1 */
+  --chart-4: oklch(0.5253 0.155 18); /* rose    5.70:1 */
+  --chart-5: oklch(0.55 0.11 310); /* mauve   4.97:1 */
+
+  --sidebar: oklch(0.9846 0.0018 247);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.9539 0.0025 247);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.205 0.014 258 / 0.09);
+  --sidebar-ring: var(--primary);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Numbers must align in columns and must not jitter as they update. Inter enables
+   * tabular figures by default; this makes that explicit and covers the mono face too. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Headings should not stack awkwardly when they wrap. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary) 16%, transparent);
+  }
+
+  /* Honoured globally rather than per component, so a new animation cannot forget it.
+   * This must keep covering every effect added to the landing page. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Hairline separator that matches the shadow-as-border ring, for grouping rows
+   * without giving each one a card. */
+  .divide-hairline > * + * {
+    border-top: 1px solid var(--border);
+  }
+}
+
+@layer components {
+  /* Native <select> is kept deliberately: the OS picker is a better control on touch
+   * than a custom listbox. This gives it the same geometry, ring and focus treatment as
+   * `Input`, which three separate hand-rolled variants previously drifted from. */
+  .select-control {
+    height: calc(var(--spacing) * 8);
+    width: 100%;
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    padding-inline: calc(var(--spacing) * 2.5);
+    font-size: var(--text-body);
+    color: var(--foreground);
+    box-shadow: 0 0 0 1px var(--input);
+    outline: none;
+    transition: box-shadow var(--animate-duration-fast) ease-out;
+  }
+
+  .select-control:focus-visible {
+    box-shadow:
+      0 0 0 1px var(--ring),
+      0 0 0 4px color-mix(in oklch, var(--ring) 50%, transparent);
+  }
+
+  .select-control:disabled {
+    opacity: 0.5;
+  }
+}

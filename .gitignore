@@ -1,0 +1,74 @@
+# Node
+node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+apps/web/build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+.env*.bak*
+# Dormant credentials for a hosted deployment. Not used by the local setup — see the
+# header inside the file. Never commit.
+.env.cloud
+apps/web/.env.test
+
+# Playwright E2E (apps/web/e2e) — local run artifacts, never committed
+apps/web/e2e/report/
+apps/web/e2e/test-results/
+apps/web/blob-report/
+apps/web/playwright-report/
+apps/web/test-results/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+
+# Logs / misc
+*.log
+.cache/
+
+# Docker volumes (local dev data, not the compose file)
+infra/pgdata/
+infra/qdrantdata/
+
+
+# Submission drafts and their generated DOCX/PDF builds
+FinalV0/
+FinalV1/
+
+
+# Local-only docs and notes (moved out of the tree; never committed)
+dev/
+
+# Local tooling / archives — not committed for now
+.claude/
+.agents/
+.archive/
+infra/
+scripts/
