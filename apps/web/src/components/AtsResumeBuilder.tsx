@@ -68,7 +68,10 @@ export interface ResumeData {
 
 /** Seed resume for Prasad Bhalerao, pre-populating all builder sections with
  * verified background, skills, experience, projects, and education. */
-export const PRASAD_RESUME: ResumeData = {
+/** Worked example shown until the candidate's own profile loads, so the template
+ * previews and the ATS score have something realistic to render. Replaced field by
+ * field as profile data arrives. */
+export const SAMPLE_RESUME: ResumeData = {
   fullName: "Prasad Bhalerao",
   roleTitle: "Full Stack Web Developer & AI Engineer",
   phone: "+91 98765 43210",
@@ -179,7 +182,7 @@ export const PRASAD_RESUME: ResumeData = {
   ],
 };
 
-const EMPTY_RESUME = PRASAD_RESUME;
+const INITIAL_RESUME = SAMPLE_RESUME;
 
 /** Profile experience/education entries arrive as loose JSON from résumé parsing, so a
  * field may be missing or not a string. Reads it as display text, defaulting to "". */
@@ -192,7 +195,7 @@ function text(value: unknown): string {
 export function AtsResumeBuilder() {
   const { getToken } = useAuth();
   const { me } = useCurrentUser();
-  const [data, setData] = useState<ResumeData>(EMPTY_RESUME);
+  const [data, setData] = useState<ResumeData>(INITIAL_RESUME);
   // A "has this already run" latch, not rendered state — a ref keeps it out of the
   // render cycle instead of triggering a cascading re-render from inside the effect.
   const seededRef = useRef(false);

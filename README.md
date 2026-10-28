@@ -2,6 +2,29 @@
 
 A multi-agent platform for talent intelligence, recruitment matching, hackathon evaluation, and trust/fraud prevention.
 
+**The problem:** resumes and keyword matching cannot tell a candidate who has *built* something from one who only *claims* it, and the evidence that would tell them apart (code, hackathon results, assessments, pitch decks) goes unused. **TRACE scores candidates on that verifiable evidence, explains every score, and gives recruiters a hiring pipeline built on it.**
+
+## Problem Statement Coverage
+
+Each mandatory module of the problem statement, and where it is implemented:
+
+| Problem-statement module | What TRACE delivers | Implementation |
+|---|---|---|
+| **Candidate Intelligence Platform:** AI Talent Profile Engine, AI Talent Score, dashboard | Profile built from GitHub, résumé, certificates, LeetCode and hackathon results. Nine evidence-backed sub-scores with a weighted composite; missing signals are dropped and their weight redistributed, never zero-filled. | `services/agents/candidate_intelligence/`, `services/agents/common/scoring.py`, `apps/web/src/app/(candidate)/dashboard/` |
+| **AI Resume & Portfolio Builder** | ATS-scored résumé builder and a public portfolio page | `apps/web/src/components/AtsResumeBuilder.tsx`, `apps/web/src/lib/atsScoring.ts`, `apps/web/src/app/(public)/[username]/` |
+| **AI Career Guidance** | Skill gaps, learning roadmap and salary range | `services/agents/candidate_intelligence/career_guidance_graph.py`, `apps/web/src/app/(candidate)/career/` |
+| **AI Recruitment Platform:** recruiter dashboard, AI job matching, recruiter copilot | Four-term match score (skill overlap weighted toward *verified* skills, semantic similarity, experience, job-contextual Talent Score), hiring pipeline, funnel analytics and natural-language candidate search | `services/agents/recruitment/`, `services/api/modules/recruitment/`, `apps/web/src/app/(recruiter)/` |
+| **AI Assessment & Verification:** skill verification, AI interview agent, team contribution analytics | Timed coding/MCQ assessments with static analysis and LLM code review; an adaptive AI interviewer (voice/text, or a live TruGen video avatar) grounded in the role's job description; per-member contribution reports | `services/agents/assessment/`, `services/api/core/trugen.py`, `apps/web/src/app/(candidate)/interviews/` |
+| **AI PPT Analyzer** | Pitch-deck scoring on problem/solution, innovation and technical feasibility, with plagiarism and AI-content signals | `services/agents/ppt_analyzer/`, `apps/web/src/app/pitch-deck/` |
+| **Hackathon-to-Hiring Pipeline** | Event creation, team import, judge scoring, ranking finalization, and top finishers pushed into recruiter feeds | `services/agents/hackathon/`, `services/api/modules/hackathons/`, `apps/web/src/app/(organizer)/`, `(judge)/` |
+| **Trust & Fraud Prevention** | Certificate verification, code plagiarism, duplicate-profile and AI-content detection. A flag has no effect until a human upholds it, and the candidate can dispute it. | `services/agents/fraud/`, `services/api/modules/fraud/`, `apps/web/src/app/(admin)/fraud-review/` |
+
+**Not implemented:** LinkedIn profile import. Profiles are built from the sources listed above.
+
+## Quality Gates
+
+Every push runs `.github/workflows/ci.yml`: backend `pytest` (API authorization boundaries, scoring formulas, agents, TruGen client), and frontend ESLint, TypeScript, Vitest and a production build.
+
 ---
 
 ## 1. Project Architecture & Modular Structure
