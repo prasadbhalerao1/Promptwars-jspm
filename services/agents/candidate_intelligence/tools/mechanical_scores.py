@@ -41,9 +41,13 @@ def coding_ability(
         return SubScore(value=None, rationale="No GitHub repos or assessment submissions — cold start.")
 
     total_commits = sum(r.commit_count for r in analysis.repos if not r.is_fork)
+    # Ranked on the same measure the population is built from (population.py sums
+    # github_stats.commit_activity_weekly), falling back to per-repo totals when the
+    # weekly series is missing.
+    yearly_commits = sum(analysis.commit_activity_weekly or []) or total_commits
     language_score = (
         percentile_normalize(
-            float(total_commits), commit_population, fallback_fn=_language_score_fallback
+            float(yearly_commits), commit_population, fallback_fn=_language_score_fallback
         )
         if analysis.repos
         else None
@@ -129,21 +133,77 @@ def leadership(analysis: GithubAnalysis, *, leadership_population: list[float]) 
     )
 
 
+# LeetCode contest ratings start at 1500; 1200 and below is the floor of the rated
+# population and 2400 is roughly Guardian tier, so that span maps onto 0-100.
+_LEETCODE_RATING_FLOOR = 1200.0
+_LEETCODE_RATING_CEILING = 2400.0
+# Difficulty-weighted solve count (easy 1, medium 2, hard 3) that maps to 100. The
+# square root keeps early progress visible without letting volume alone max it out:
+# ~100 mediums lands near 67, ~450 mediums at 100.
+_LEETCODE_SOLVED_CEILING = 900.0
+
+
+def leetcode_score(leetcode_stats: dict | None) -> tuple[float, str] | None:
+    """0-100 from a candidate's LeetCode stats, or None when there is nothing to score.
+
+    70% difficulty-weighted problems solved, 30% contest rating when they have one.
+    """
+    if not leetcode_stats:
+        return None
+    easy = int(leetcode_stats.get("easy_solved") or 0)
+    medium = int(leetcode_stats.get("medium_solved") or 0)
+    hard = int(leetcode_stats.get("hard_solved") or 0)
+    weighted = easy + 2 * medium + 3 * hard
+    rating = leetcode_stats.get("latest_rating")
+    if weighted == 0 and not rating:
+        return None
+
+    solved_score = min(100.0, 100.0 * math.sqrt(weighted / _LEETCODE_SOLVED_CEILING))
+    detail = f"LeetCode {easy}E/{medium}M/{hard}H solved"
+    if rating:
+        rating_score = 100.0 * (float(rating) - _LEETCODE_RATING_FLOOR) / (
+            _LEETCODE_RATING_CEILING - _LEETCODE_RATING_FLOOR
+        )
+        rating_score = max(0.0, min(100.0, rating_score))
+        detail += f", contest rating {float(rating):.0f}"
+        return 0.7 * solved_score + 0.3 * rating_score, detail
+    return solved_score, detail
+
+
 def problem_solving(
-    assessment_score: float | None, assessment_population: list[float]
+    assessment_score: float | None,
+    assessment_population: list[float],
+    *,
+    leetcode_stats: dict | None = None,
 ) -> SubScore:
-    """Directly from the candidate's latest assessment score, winsorized 5th-95th
-    against the population per the proposal, then percentile-ranked. `None` only when
-    the candidate truly has no assessment submissions yet — real cold start, not a
-    permanent placeholder."""
-    if assessment_score is None:
+    """Platform assessment (percentile-ranked, winsorized 5th-95th against the
+    population) blended 60/40 with LeetCode. Assessments carry more weight because they
+    are taken on-platform and are harder to game; either source alone is enough to
+    score. `None` only when the candidate has neither."""
+    terms: list[tuple[float, float]] = []
+    details: list[str] = []
+    if assessment_score is not None:
+        winsorized_population = winsorize(assessment_population)
+        assessment_value = percentile_normalize(
+            assessment_score, winsorized_population, min_population=10
+        )
+        terms.append((0.6, assessment_value))
+        details.append(
+            f"latest assessment score {assessment_score:.1f}, percentile-ranked (winsorized 5th-95th) vs. candidate pool"
+        )
+    leetcode = leetcode_score(leetcode_stats)
+    if leetcode is not None:
+        terms.append((0.4, leetcode[0]))
+        details.append(leetcode[1])
+
+    if not terms:
         return SubScore(
             value=None,
-            rationale="No assessment submissions yet — problem solving requires at least one.",
+            rationale="No assessment submissions or LeetCode activity yet.",
         )
-    winsorized_population = winsorize(assessment_population)
-    value = percentile_normalize(assessment_score, winsorized_population, min_population=10)
+    value = weighted_renormalized_mean(terms)
+    rationale = "; ".join(details)
     return SubScore(
         value=round(value, 1),
-        rationale=f"Latest assessment score {assessment_score:.1f}, percentile-ranked (winsorized 5th-95th) vs. candidate pool.",
+        rationale=rationale[0].upper() + rationale[1:] + ".",
     )

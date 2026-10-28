@@ -68,7 +68,9 @@ async def run(state: CandidateProfileState) -> dict:
             assessment_score=assessment_score,
             assessment_population=assessment_population,
         ),
-        "problem_solving": mechanical_scores.problem_solving(assessment_score, assessment_population),
+        "problem_solving": mechanical_scores.problem_solving(
+            assessment_score, assessment_population, leetcode_stats=state.get("leetcode_stats")
+        ),
         "technical_consistency": mechanical_scores.technical_consistency(analysis),
         "community_participation": mechanical_scores.community_participation(
             analysis, star_population=state.get("star_population") or []
@@ -177,12 +179,13 @@ async def run(state: CandidateProfileState) -> dict:
                     )
                 )
         elif comp_id == "community_participation":
-            if analysis.total_stars > 0 or analysis.total_forks > 0:
+            total_forks = sum(r.forks for r in analysis.repos or [])
+            if analysis.total_stars > 0 or total_forks > 0:
                 ev_items.append(
                     EvidenceItem(
                         source="github:stars_forks",
                         artifact_type="peer_recognition",
-                        indicator=f"Earned {analysis.total_stars} stars and {analysis.total_forks} forks from community",
+                        indicator=f"Earned {analysis.total_stars} stars and {total_forks} forks from community",
                         provenance="https://github.com",
                         verification_status="verified",
                     )

@@ -44,6 +44,9 @@ class CandidateProfileState(TypedDict):
     hackathon_platform_results: Optional[list[dict]]
     hackathon_self_reported: Optional[list[dict]]
 
+    # LeetCode stats as stored on the profile (tools/leetcode.py's LeetcodeStats as a dict)
+    leetcode_stats: Optional[dict]
+
     # Scoring output
     sub_scores: dict[str, SubScore]
     overall_score: Optional[float]

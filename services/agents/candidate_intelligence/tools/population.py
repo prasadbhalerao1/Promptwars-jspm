@@ -26,6 +26,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
 from packages.db.models.candidate import CandidateProfile, TalentScore
+from packages.db.models.user import User
+
+# Accounts created by scripts/seed_realistic_population.py. They exist to populate demo
+# screens, and ranking real candidates against them made every real score a percentile
+# of made-up numbers (thousands of commits a year each), so they never count.
+SYNTHETIC_EMAIL_DOMAIN = "synthetic.trace.dev"
+
+
+def real_candidate_ids():
+    """Subquery of candidate profile ids that belong to real (non-seeded) accounts."""
+    return (
+        select(CandidateProfile.id)
+        .join(User, User.id == CandidateProfile.user_id)
+        .where(~User.email.like(f"%@{SYNTHETIC_EMAIL_DOMAIN}"))
+    )
 
 # Sub-scores percentile-normalized against the population (doc: community_participation,
 # leadership). coding_ability/problem_solving use assessment_bridge.py's population instead.
@@ -76,7 +91,11 @@ async def scored_candidate_count(db: AsyncSession) -> int:
     cached = cache_get("scored_count")
     if cached is not None:
         return int(cached)  # type: ignore[arg-type]
-    result = await db.execute(select(func.count(distinct(TalentScore.candidate_id))))
+    result = await db.execute(
+        select(func.count(distinct(TalentScore.candidate_id))).where(
+            TalentScore.candidate_id.in_(real_candidate_ids())
+        )
+    )
     count = int(result.scalar() or 0)
     cache_put("scored_count", count)
     return count
@@ -111,6 +130,7 @@ async def latest_subscore_populations(
     columns = [getattr(TalentScore, field_name) for field_name in field_names]
     stmt = (
         select(*columns)
+        .where(TalentScore.candidate_id.in_(real_candidate_ids()))
         .distinct(TalentScore.candidate_id)
         .order_by(TalentScore.candidate_id, TalentScore.computed_at.desc())
     )
@@ -152,7 +172,10 @@ async def commit_count_population(db: AsyncSession) -> list[float]:
     # from candidate_profiles (one row per candidate), so the row count is only known
     # after filtering out candidates whose github_stats carry no weekly activity.
     result = await db.execute(
-        select(CandidateProfile.github_stats).where(CandidateProfile.github_stats.is_not(None))
+        select(CandidateProfile.github_stats).where(
+            CandidateProfile.github_stats.is_not(None),
+            CandidateProfile.id.in_(real_candidate_ids()),
+        )
     )
     totals: list[float] = []
     for (stats,) in result.all():

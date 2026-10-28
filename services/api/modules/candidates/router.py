@@ -75,7 +75,6 @@ from services.agents.candidate_intelligence.tools.github_calendar import (
 )
 from services.agents.candidate_intelligence.tools.population import (
     commit_count_population,
-    latest_subscore_populations,
 )
 from services.agents.candidate_intelligence.tools.leetcode import (
     LeetcodeUnavailable,
@@ -337,17 +336,11 @@ async def _run_ingestion_and_persist(
     # Population/assessment data for Talent Score v2's percentile normalization —
     # fetched here (the router owns the DB session) and injected into graph state so the
     # talent_scoring node stays DB-free, same convention as the rest of this module.
-    # All three TalentScore-derived populations come from one DISTINCT ON query rather
-    # than three window-function scans of the append-only history table, and every
-    # population short-circuits below MIN_POPULATION (percentile_normalize discards them
-    # there anyway). This runs on every ingestion, so it sits on the visible wait.
-    subscore_populations = await latest_subscore_populations(
-        db, ("community_participation", "leadership", "open_source_contributions")
-    )
+    # Only populations measured in the same units as the candidate's own value are
+    # passed. Stars, leadership and open-source used to be ranked against other
+    # candidates' finished 0-100 sub-scores, which compared a raw count to a score; those
+    # now use their absolute scales until a raw-value population is stored.
     commit_population = await commit_count_population(db)
-    star_population = subscore_populations["community_participation"]
-    leadership_population = subscore_populations["leadership"]
-    contribution_population = subscore_populations["open_source_contributions"]
     assessment_score = await latest_assessment_score(db, profile.id)
     assessment_population = await assessment_score_population(db)
 
@@ -400,13 +393,14 @@ async def _run_ingestion_and_persist(
         "merged_profile": None,
         "conflicts": [],
         "commit_population": commit_population,
-        "star_population": star_population,
-        "leadership_population": leadership_population,
-        "contribution_population": contribution_population,
+        "star_population": [],
+        "leadership_population": [],
+        "contribution_population": [],
         "assessment_score": assessment_score,
         "assessment_population": assessment_population,
         "hackathon_platform_results": hackathon_platform_results,
         "hackathon_self_reported": hackathon_self_reported,
+        "leetcode_stats": profile.leetcode_stats,
         "sub_scores": {},
         "overall_score": None,
         "renormalized_subscores": [],
@@ -825,6 +819,7 @@ async def connect_github_username(
 @router.post("/me/leetcode", response_model=CandidateProfileResponse)
 async def connect_leetcode(
     body: LeetcodeConnectRequest,
+    background_tasks: BackgroundTasks,
     user: User = Depends(require_role("candidate")),
     db: AsyncSession = Depends(get_db),
 ) -> CandidateProfile:
@@ -838,13 +833,17 @@ async def connect_leetcode(
     profile.leetcode_username = body.leetcode_username
     profile.leetcode_stats = asdict(stats)
     profile.stats_refreshed_at = datetime.now(timezone.utc)
+    profile.ingestion_status = "processing"
     await db.commit()
     await db.refresh(profile)
+    # LeetCode feeds Problem Solving, so the Talent Score is stale until rescored.
+    background_tasks.add_task(_run_ingestion_background, profile.id, {}, None)
     return profile
 
 
 @router.post("/me/stats/refresh", response_model=CandidateProfileResponse)
 async def refresh_stats(
+    background_tasks: BackgroundTasks,
     user: User = Depends(require_role("candidate")),
     db: AsyncSession = Depends(get_db),
 ) -> CandidateProfile:
@@ -864,16 +863,22 @@ async def refresh_stats(
                 detail={"error": "refresh_on_cooldown", "retry_at": retry_at.isoformat()},
             )
 
+    leetcode_updated = False
     if profile.leetcode_username:
         try:
             stats = await fetch_leetcode_stats(profile.leetcode_username)
             profile.leetcode_stats = asdict(stats)
+            leetcode_updated = True
         except LeetcodeUnavailable:
             logger.warning("LeetCode stats refresh failed for %s", profile.leetcode_username, exc_info=True)
 
     profile.stats_refreshed_at = now
+    if leetcode_updated:
+        profile.ingestion_status = "processing"
     await db.commit()
     await db.refresh(profile)
+    if leetcode_updated:
+        background_tasks.add_task(_run_ingestion_background, profile.id, {}, None)
     return profile
 
 

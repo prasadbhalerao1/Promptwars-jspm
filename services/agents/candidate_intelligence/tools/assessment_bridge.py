@@ -21,6 +21,7 @@ from services.agents.candidate_intelligence.tools.population import (
     MIN_POPULATION,
     cache_get,
     cache_put,
+    real_candidate_ids,
 )
 
 
@@ -48,7 +49,9 @@ async def assessment_score_population(db: AsyncSession) -> list[float]:
         return list(cached)  # type: ignore[arg-type]
 
     count_result = await db.execute(
-        select(func.count(distinct(Submission.candidate_id))).where(Submission.score.is_not(None))
+        select(func.count(distinct(Submission.candidate_id))).where(
+            Submission.score.is_not(None), Submission.candidate_id.in_(real_candidate_ids())
+        )
     )
     if int(count_result.scalar() or 0) < MIN_POPULATION:
         cache_put("assessment_scores", [])
@@ -56,7 +59,7 @@ async def assessment_score_population(db: AsyncSession) -> list[float]:
 
     result = await db.execute(
         select(Submission.score)
-        .where(Submission.score.is_not(None))
+        .where(Submission.score.is_not(None), Submission.candidate_id.in_(real_candidate_ids()))
         .distinct(Submission.candidate_id)
         .order_by(Submission.candidate_id, Submission.submitted_at.desc())
     )
